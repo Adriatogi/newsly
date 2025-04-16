@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Text, View, TextInput, StyleSheet, Button, ScrollView } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 interface AnalysisData {
   source: string;
@@ -46,6 +47,7 @@ export default function App() {
   };
 
   return (
+    <SafeAreaView style={styles.safeArea}>
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.heading}>NEWSLY</Text>
       <Text style={styles.subheadingBold}>Analyze News Articles</Text> 
@@ -76,10 +78,15 @@ export default function App() {
         </View>
       )}
     </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#FFFFF4",
+  },
   container: {
     paddingVertical: 40,
     paddingHorizontal: 20,
