@@ -1,13 +1,10 @@
 from typing import Union
 
 from fastapi import FastAPI
-from pydantic import BaseModel
+
+from app.models import ArticleAnalysisRequest
 
 app = FastAPI()
-
-
-class ArticleAnalysisRequest(BaseModel):
-    url: str
 
 
 @app.get("/")
