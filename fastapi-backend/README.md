@@ -19,3 +19,9 @@ Steps to get it running
     ```bash
     fastapi dev main.py
     ```
+
+6. To use the CLI, run
+```bash
+    python3 cli.py --help
+```
+
