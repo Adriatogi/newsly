@@ -11,19 +11,15 @@ interface AnalysisData {
 }
 
 export default function App() {
-  // State for the URL input
+
   const [url, setUrl] = useState("");
-  // Holds the dummy analysis results for multiple sources
   const [analysisData, setAnalysisData] = useState<AnalysisData[] | null>(null);
-  // Loading indicator state for simulating fetch
   const [loading, setLoading] = useState(false);
 
-  // Simulated handleSubmit function that "analyzes" the news article
   const handleAnalyzeArticle = () => {
     setLoading(true);
     setAnalysisData(null);
     
-    // Simulate fetching and analyzing the article
     setTimeout(() => {
       const dummyData: AnalysisData[] = [
         {
@@ -48,8 +44,10 @@ export default function App() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.heading}>NEWSLY</Text>
+    <ScrollView 
+      contentContainerStyle={styles.container}
+      showsVerticalScrollIndicator={false}
+      >
       <Text style={styles.subheadingBold}>Analyze News Articles</Text> 
       <Text style={styles.subheading}>Enter the URL of a news article:</Text>
       <TextInput
@@ -110,7 +108,7 @@ const styles = StyleSheet.create({
     width: "90%",
     borderColor: "#ccc",
     borderWidth: 1,
-    borderRadius: 5,
+    borderRadius: 10,
     paddingHorizontal: 10,
     backgroundColor: "#fff",
     marginBottom: 20,

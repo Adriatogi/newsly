@@ -1,10 +1,10 @@
-import { Stack } from "expo-router";
+import { Slot, router } from "expo-router";
+import { useEffect } from "react";
 
 export default function RootLayout() {
-  return <Stack 
-    screenOptions={{
-      headerShown: false,
-      contentStyle: { backgroundColor: "#fff" },
-    }}
-  />;
+  useEffect(() => {
+    router.replace("/tabs/feed");
+  }, []);
+
+  return <Slot />;
 }
