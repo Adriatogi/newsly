@@ -17,7 +17,7 @@ Steps to get it running
     ```
 5. Run the FastAPI server
     ```bash
-    fastapi dev main.py
+    fastapi dev app/main.py
     ```
 
 6. To use the CLI, run
