@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import asyncio
-import json
+import json as pyjson
 import click
 from app.utils import analyze_article_logic
 
@@ -21,9 +21,9 @@ def cli():
 def analyze(url, json):
     """Analyze an article from the given URL."""
     result = asyncio.run(analyze_article(url))
-    
+
     if json:
-        click.echo(json.dumps(result, indent=2))
+        click.echo(pyjson.dumps(result, indent=2))
     else:
         for key, value in result.items():
             click.echo(f"{key}: {value}")
@@ -31,4 +31,4 @@ def analyze(url, json):
 
 
 if __name__ == "__main__":
-    cli() 
+    cli()

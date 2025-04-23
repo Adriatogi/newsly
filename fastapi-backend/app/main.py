@@ -3,6 +3,12 @@ from fastapi import FastAPI
 from app.models import ArticleAnalysisRequest
 from app.utils import analyze_article_logic
 
+# dotenv
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# Initialize FastAPI app
 app = FastAPI()
 
 
