@@ -12,8 +12,9 @@ Steps to get it running
     ```bash
     pip install -r requirements.txt
     ```
-4. Create a `.env` file in the `fastapi-backend` directory and add the following environment variables:
+4. Copy the `.env.template` file to `.env` and fill in the required environment variables
     ```bash
+    cp .env.template .env
     ```
 5. Run the FastAPI server
     ```bash

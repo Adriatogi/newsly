@@ -1,4 +1,3 @@
-from typing import Union
 from fastapi import FastAPI
 from app.models import ArticleAnalysisRequest
 from app.utils import analyze_article_logic
