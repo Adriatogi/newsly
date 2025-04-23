@@ -1,5 +1,8 @@
 Steps to get it running
 1. cd into the `fastapi-backend` directory
+    ```bash
+    cd fastapi-backend
+    ```
 2. Create a virtual environment
     ```bash
     python3 -m venv venv
