@@ -58,10 +58,7 @@ uvicorn==0.34.2
 uvloop==0.21.0
 watchfiles==1.0.5
 websockets==15.0.1
-<<<<<<< HEAD
 
 supabase
-=======
 transformers==4.38.2
 torch==2.2.1
->>>>>>> main
