@@ -1,5 +1,8 @@
 Steps to get it running
 1. cd into the `fastapi-backend` directory
+    ```bash
+    cd fastapi-backend
+    ```
 2. Create a virtual environment
     ```bash
     python3 -m venv venv
@@ -12,8 +15,9 @@ Steps to get it running
     ```bash
     pip install -r requirements.txt
     ```
-4. Create a `.env` file in the `fastapi-backend` directory and add the following environment variables:
+4. Copy the `.env.template` file to `.env` and fill in the required environment variables
     ```bash
+    cp .env.template .env
     ```
 5. Run the FastAPI server
     ```bash
