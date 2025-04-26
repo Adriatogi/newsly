@@ -1,10 +1,5 @@
-from pydantic import BaseModel
+# from transformers import pipeline
 
-
-class ArticleAnalysisRequest(BaseModel):
-    url: str
-
-#from transformers import pipeline
 
 async def llm_summarize(text: str) -> str:
     return "summary of text"

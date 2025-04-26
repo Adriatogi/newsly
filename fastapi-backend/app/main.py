@@ -1,6 +1,6 @@
 from fastapi import FastAPI
-from app.models import ArticleAnalysisRequest
-from app.utils import analyze_article_logic
+from app.types import ArticleAnalysisRequest
+from app.utils import process_article_db
 
 # dotenv
 from dotenv import load_dotenv
@@ -18,4 +18,4 @@ def read_root():
 
 @app.post("/articles/analyze")
 async def analyze_article(article_analysis_request: ArticleAnalysisRequest):
-    return await analyze_article_logic(article_analysis_request.url)
+    return await process_article_db(article_analysis_request.url)

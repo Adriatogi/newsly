@@ -5,7 +5,7 @@ from urllib.parse import urlparse, urlunparse
 
 from datetime import datetime
 
-# 
+#
 
 
 def normalize_url(url: str) -> str:
@@ -45,6 +45,7 @@ def parse_article(url: str):
 
     return article
 
+
 def analyze_article(article: Article):
     """
     Analyze an article.
@@ -79,5 +80,6 @@ async def process_article_db(url: str):
 
         # Analyze article
         analysis = analyze_article(new_article)
+        article["summary"] = analysis["summary"]
 
     return article
