@@ -1,0 +1,23 @@
+from newspaper import Article
+from app.models import llm_summarize
+from app.models import political_bias
+
+
+async def analyze_article_logic(url: str):
+    article = Article(url)
+    article.download()
+    article.parse()
+    
+    summary = await llm_summarize(article.text)
+
+    bias = await political_bias(article.text)
+    
+    return {
+        "url": article.url,
+        "title": article.title,
+        "text": article.text,
+        "authors": article.authors,
+        "image": article.top_image,
+        "summary": summary, 
+        "political bias": bias
+    } 

@@ -1,8 +1,6 @@
+.venv
 .DS_Store
-node_modules
-
-# build files
-dist
+__pycache__/
 
 # local env files
 .env
