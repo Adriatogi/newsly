@@ -44,12 +44,12 @@ def parse_article(url: str):
     return article
 
 
-def analyze_article(article: Article):
+async def analyze_article(article: Article):
     """
     Analyze an article.
     """
-    summary = await llm_summarize(article.text)
-    bias = await political_bias(article.text)
+    summary = await llm_summarize(article["text"])
+    bias = await political_bias(article["text"])
 
     return {
         "summary": summary,
@@ -74,9 +74,9 @@ async def process_article_db(url: str):
         # Add article to the database
         article = add_article_to_db(clean_url, new_article)
 
-        # Analyze article
-        analysis = analyze_article(new_article)
-        article["summary"] = analysis["summary"]
-        article["bias"] = analysis["bias"]
+    # Analyze article
+    analysis = await analyze_article(article)
+    article["summary"] = analysis["summary"]
+    article["bias"] = analysis["bias"]
 
     return article

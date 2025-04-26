@@ -8,8 +8,10 @@ from app.utils import process_article_db, analyze_article
 async def process_article_wrapper(url):
     return await process_article_db(url)
 
+
 async def analyze_article_wrapper(url):
     return await analyze_article(url)
+
 
 @click.group()
 def cli():
@@ -31,7 +33,8 @@ def process_article(url, json_output):
             click.echo(f"{key}: {value}")
         # Add other fields as needed
 
-@click.command()
+
+@cli.command()
 @click.argument("url")
 @click.option("--json_output", is_flag=True, help="Output as JSON")
 def parse_article(url, json_output):
@@ -40,6 +43,7 @@ def parse_article(url, json_output):
 
     if json_output:
         click.echo(json.dumps(result, indent=2))
+
 
 @cli.command()
 @click.argument("url")
@@ -50,6 +54,7 @@ def analyze(url, json_output):
 
     if json_output:
         click.echo(json.dumps(result, indent=2))
+
 
 if __name__ == "__main__":
     cli()
