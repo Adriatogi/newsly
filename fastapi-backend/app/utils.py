@@ -1,11 +1,9 @@
 from newspaper import Article
-from app.ml import llm_summarize
+from app.ml import llm_summarize, political_bias
 from app.db import add_article_to_db, get_article_by_url, increment_article_read_count
 from urllib.parse import urlparse, urlunparse
 
 from datetime import datetime
-
-#
 
 
 def normalize_url(url: str) -> str:
@@ -50,14 +48,12 @@ def analyze_article(article: Article):
     """
     Analyze an article.
     """
-    summary = llm_summarize(article.text)
+    summary = await llm_summarize(article.text)
+    bias = await political_bias(article.text)
 
     return {
         "summary": summary,
-        "authors": article.authors,
-        "publish_date": article.publish_date,
-        "text": article.text,
-        "top_image": article.top_image,
+        "bias": bias,
     }
 
 
@@ -81,5 +77,6 @@ async def process_article_db(url: str):
         # Analyze article
         analysis = analyze_article(new_article)
         article["summary"] = analysis["summary"]
+        article["bias"] = analysis["bias"]
 
     return article
