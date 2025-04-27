@@ -2,15 +2,15 @@
 import asyncio
 import json
 import click
-from app.utils import process_article_db, analyze_article
+from app.server import process_article_db, analyze_article
 
 
-async def process_article_wrapper(url):
-    return await process_article_db(url)
+async def process_article_wrapper(url, test_mode=False):
+    return await process_article_db(url, test_mode=test_mode)
 
 
-async def analyze_article_wrapper(url):
-    return await analyze_article(url)
+async def analyze_article_wrapper(url, test_mode=False):
+    return await analyze_article(url, test_mode=test_mode)
 
 
 @click.group()
@@ -21,10 +21,11 @@ def cli():
 
 @cli.command()
 @click.argument("url")
-@click.option("--json_output", is_flag=True, help="Output as JSON")
-def process_article(url, json_output):
+@click.option("--json-output", is_flag=True, help="Output as JSON")
+@click.option("--test-mode", is_flag=True, help="Run in test mode")
+def process_article(url, json_output, test_mode):
     """Analyze an article from the given URL."""
-    result = asyncio.run(process_article_wrapper(url))
+    result = asyncio.run(process_article_wrapper(url, test_mode=test_mode))
 
     if json_output:
         click.echo(json.dumps(result, indent=2))
@@ -36,7 +37,7 @@ def process_article(url, json_output):
 
 @cli.command()
 @click.argument("url")
-@click.option("--json_output", is_flag=True, help="Output as JSON")
+@click.option("--json-output", is_flag=True, help="Output as JSON")
 def parse_article(url, json_output):
     """Parse an article from the given URL."""
     result = asyncio.run(parse_article(url))
@@ -47,10 +48,11 @@ def parse_article(url, json_output):
 
 @cli.command()
 @click.argument("url")
-@click.option("--json_output", is_flag=True, help="Output as JSON")
-def analyze(url, json_output):
+@click.option("--json-output", is_flag=True, help="Output as JSON")
+@click.option("--test-mode", is_flag=True, help="Run in test mode")
+def analyze(url, json_output, test_mode):
     """Analyze an article from the given URL."""
-    result = asyncio.run(analyze_article_wrapper(url))
+    result = asyncio.run(analyze_article_wrapper(url, test_mode=test_mode))
 
     if json_output:
         click.echo(json.dumps(result, indent=2))
