@@ -63,6 +63,8 @@ def add_article_to_db(cleaned_url: str, article: Article, test_mode=False):
         "published_date": article.publish_date.isoformat(),
         "keywords": article.keywords,
         "last_analyzed_at": datetime.now().isoformat(),
+        "summary": article.summary,
+        "bias": article.bias,
     }
 
     # Add article to the database

@@ -25,17 +25,20 @@ async def process_article_db(url: str, test_mode=False):
     article = get_article_by_url(clean_url, test_mode=test_mode)
 
     if article:
+        print("article already in db")
         increment_article_read_count(article["id"], article["read_count"])
     else:
+        print("article not in db")
         # parse article
         new_article = parse_article(url)
 
-        # Add article to the database
-        article = add_article_to_db(clean_url, new_article, test_mode=test_mode)
+        # Analyze article
+        analysis = await analyze_article(article, test_mode=test_mode)
 
-    # Analyze article
-    analysis = await analyze_article(article, test_mode=test_mode)
-    article["summary"] = analysis["summary"]
-    article["bias"] = analysis["bias"]
+        # Add article to the database
+        new_article["summary"] = analysis["summary"]
+        new_article["bias"] = analysis["bias"]
+        article = add_article_to_db(clean_url, new_article, test_mode=test_mode)
+    
 
     return article
