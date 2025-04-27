@@ -23,7 +23,7 @@ def read_root():
 
 @app.post("/articles/analyze")
 async def analyze_article(article_analysis_request: ArticleAnalysisRequest):
-    return await process_article_db(article_analysis_request.url, TEST_MODE)
+    return await process_article_db(article_analysis_request.url, test_mode=TEST_MODE)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Run the FastAPI server')

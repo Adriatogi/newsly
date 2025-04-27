@@ -16,7 +16,7 @@ async def analyze_article(article: Article, test_mode=False):
     }
 
 
-async def process_article_db(url: str, test_mode=False):
+async def process_article_db(url: str, cache=True, test_mode=False):
     """
     Analyze an article from the given URL.
     """
@@ -38,7 +38,12 @@ async def process_article_db(url: str, test_mode=False):
         # Add article to the database
         new_article["summary"] = analysis["summary"]
         new_article["bias"] = analysis["bias"]
-        article = add_article_to_db(clean_url, new_article, test_mode=test_mode)
-    
+
+        if not cache:
+            print("Caching article to db")
+            article = add_article_to_db(clean_url, new_article, test_mode=test_mode)
+        else:
+            print("Not caching article to db")
+            article = new_article
 
     return article
