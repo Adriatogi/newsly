@@ -31,12 +31,24 @@ def extract_json(text: str):
     else:
         json_str = text
     
+    # Clean up the string - handle escaped newlines and nested JSON
+    json_str = json_str.replace('\\n', '\n').replace('\\"', '"')
+    
     try:
+        # First try direct parsing
         json_obj = json.loads(json_str)
         return json_obj
     except json.JSONDecodeError:
-        # Fallback for when JSON parsing fails
-        return {"answer": "Failed to parse response as JSON."} 
+        try:
+            # Try with regex to extract JSON objects from text that might contain other content
+            matches = re.findall(r'\{(?:[^{}]|(?:\{(?:[^{}]|(?:\{[^{}]*\}))*\}))*\}', json_str)
+            if matches:
+                return json.loads(matches[0])
+        except:
+            pass
+            
+        # If all parsing attempts fail
+        return {"answer": f"Failed to parse response as JSON. Original text: {text}"} 
 
 def parse_article(url: str):
     """

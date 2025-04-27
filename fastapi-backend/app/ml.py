@@ -65,14 +65,14 @@ async def political_bias(text: str, test_mode=False) -> dict:
             Text: {text}
 
             Please return the answer in the following format:
-            {
-                "probabilities": {
+            {{
+                "probabilities": {{
                     "left": 0.3,
                     "center": 0.4,
-                    "right": 0.3,
-                },
-                "predicted_bias": "center",
-            }
+                    "right": 0.3
+                }},
+                "predicted_bias": "center"
+            }}
         """
 
         messages = [
@@ -113,7 +113,7 @@ async def llm_summarize(text: str, max_length: int = 130, min_length: int = 40, 
             {"role": "user", "content": prompt}
         ]
         
-        response = generate_together(
+        summary = generate_together(
             model="meta-llama/Llama-3.3-70B-Instruct-Turbo",
             messages=messages,
             max_tokens=1024,
@@ -121,5 +121,4 @@ async def llm_summarize(text: str, max_length: int = 130, min_length: int = 40, 
         )
         
         # Extract the summary from the response
-        summary = response.choices[0].text.strip()
         return summary
