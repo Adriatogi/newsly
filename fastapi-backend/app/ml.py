@@ -75,9 +75,14 @@ async def political_bias(text: str, test_mode=False) -> dict:
             }
         """
 
+        messages = [
+            {"role": "system", "content": "You are a helpful assistant that determines the political bias of text."},
+            {"role": "user", "content": prompt}
+        ]
+
         response = generate_together(
             model="meta-llama/Llama-3.3-70B-Instruct-Turbo",
-            prompt=prompt,
+            messages=messages,
             max_tokens=1024,
             temperature=0.7,
         )
@@ -103,10 +108,14 @@ async def llm_summarize(text: str, max_length: int = 130, min_length: int = 40, 
 
                 Summary:
             """
+        messages = [
+            {"role": "system", "content": "You are a helpful assistant that summarizes text."},
+            {"role": "user", "content": prompt}
+        ]
         
         response = generate_together(
             model="meta-llama/Llama-3.3-70B-Instruct-Turbo",
-            prompt=prompt,
+            messages=messages,
             max_tokens=1024,
             temperature=0.7,
         )
