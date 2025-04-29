@@ -1,9 +1,14 @@
 from newspaper import Article
-from app.ml import llm_summarize, political_bias
-from app.db import add_article_to_db, get_article_by_url, increment_article_read_count
+import modal
+import asyncio
+from datetime import datetime
 from urllib.parse import urlparse, urlunparse
 
-from datetime import datetime
+from app.ml import llm_summarize, political_bias
+from app.db import add_article_to_db, get_article_by_url, increment_article_read_count
+
+modal_summarize = modal.Function.from_name("newsly-modal-test", "summarize")
+modal_political_bias = modal.Function.from_name("newsly-modal-test", "political_bias")
 
 
 def normalize_url(url: str) -> str:
@@ -44,12 +49,18 @@ def parse_article(url: str):
     return article
 
 
-async def analyze_article(article: Article):
+async def analyze_article(article):
     """
     Analyze an article.
     """
-    summary = await llm_summarize(article["text"])
-    bias = await political_bias(article["text"])
+    # Use local llm
+    # summary = await llm_summarize(article["text"])
+    # bias = await political_bias(article["text"])
+
+    # Use modal functions for summarization and bias analysis
+    summary = modal_summarize.remote.aio(article["text"])
+    bias = modal_political_bias.remote.aio(article["text"])
+    summary, bias = await asyncio.gather(summary, bias)
 
     return {
         "summary": summary,
