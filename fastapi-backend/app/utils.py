@@ -1,10 +1,33 @@
 from newspaper import Article
 from urllib.parse import urlparse, urlunparse
-
+from dataclasses import dataclass
 from datetime import datetime
 import json
 import re
+import os
 
+TEST = int(os.environ.get("TEST", "0"))
+
+@dataclass
+class NewslyArticle:
+    text: str
+    authors: list[str]
+    publish_date: datetime
+    top_image: str
+    movies: list[str]
+    summary: str
+    bias: str
+
+    def to_dict(self):
+        return {
+            "text": self.text,
+            "authors": self.authors,
+            "publish_date": self.publish_date,
+            "top_image": self.top_image,
+            "movies": self.movies,
+            "summary": self.summary,
+            "bias": self.bias
+        }
 
 def normalize_url(url: str) -> str:
     """
@@ -72,4 +95,8 @@ def parse_article(url: str):
     article.download()
     article.parse()
 
-    return article
+    # str readable date
+    date = article.publish_date
+    date = date.isoformat()
+
+    return NewslyArticle(text=article.text, authors=article.authors, publish_date=date, top_image=article.top_image, movies=article.movies, summary="", bias="")

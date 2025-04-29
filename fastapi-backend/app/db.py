@@ -3,6 +3,8 @@ from supabase import create_client, Client
 from newspaper import Article
 from datetime import datetime
 
+import app.utils as utils
+
 # dotenv
 from dotenv import load_dotenv
 
@@ -20,11 +22,11 @@ def get_all_articles():
     return response.data
 
 
-def get_article_by_url(url: str, test_mode=False):
+def get_article_by_url(url: str):
     # Get article by URL from the database
 
     # if testing, we didn't find it
-    if test_mode:
+    if utils.TEST:
         return None
 
     response = supabase.table("articles").select("*").eq("url", url).execute()
@@ -57,7 +59,7 @@ def increment_article_read_count(article_id: str, previous_read_count: int = 0):
     return response.data
 
 
-def add_article_to_db(cleaned_url: str, article: Article, test_mode=False):
+def add_article_to_db(cleaned_url: str, article: Article):
     """
     Add an article to the database.
     Args:
@@ -81,7 +83,7 @@ def add_article_to_db(cleaned_url: str, article: Article, test_mode=False):
 
     # Add article to the database
     # TODO: Is this right for testing?
-    if not test_mode:
+    if not utils.TEST:
         response = supabase.table("articles").insert(parsed_article).execute()
         if response.data:
             return response.data[0]

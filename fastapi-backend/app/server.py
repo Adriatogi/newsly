@@ -2,13 +2,16 @@ from app.ml import llm_summarize, political_bias
 from app.utils import normalize_url, parse_article
 from app.db import get_article_by_url, increment_article_read_count, add_article_to_db
 from newspaper import Article
+import app.utils as utils
 
-async def analyze_article(article: Article, test_mode=False):
+async def analyze_article(article: Article):
     """
     Analyze an article.
     """
-    summary = await llm_summarize(article["text"], test_mode=test_mode)
-    bias = await political_bias(article["text"], test_mode=test_mode)
+
+    print("Analyzing article")
+    summary = await llm_summarize(article.text)
+    bias = await political_bias(article.text)
 
     return {
         "summary": summary,
@@ -16,13 +19,13 @@ async def analyze_article(article: Article, test_mode=False):
     }
 
 
-async def process_article_db(url: str, cache=True, test_mode=False):
+async def process_article_db(url: str, cache=True):
     """
     Analyze an article from the given URL.
     """
     # Check if the article is already in the database
     clean_url = normalize_url(url)
-    article = get_article_by_url(clean_url, test_mode=test_mode)
+    article = get_article_by_url(clean_url)
 
     if article:
         print("article already in db")
@@ -32,16 +35,22 @@ async def process_article_db(url: str, cache=True, test_mode=False):
         # parse article
         new_article = parse_article(url)
 
+        if new_article == None:
+            print("article not found")
+            raise Exception("Article not found")
+        else:
+            print("article found")
+
         # Analyze article
-        analysis = await analyze_article(article, test_mode=test_mode)
+        analysis = await analyze_article(new_article)
 
         # Add article to the database
-        new_article["summary"] = analysis["summary"]
-        new_article["bias"] = analysis["bias"]
+        new_article.summary = analysis["summary"]
+        new_article.bias = analysis["bias"]
 
         if not cache:
             print("Caching article to db")
-            article = add_article_to_db(clean_url, new_article, test_mode=test_mode)
+            article = add_article_to_db(clean_url, new_article)
         else:
             print("Not caching article to db")
             article = new_article

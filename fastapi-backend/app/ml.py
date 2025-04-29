@@ -2,6 +2,8 @@ from pydantic import BaseModel
 from app.clients import generate_together
 from app.utils import extract_json
 
+import app.utils as utils
+
 class ArticleAnalysisRequest(BaseModel):
     url: str
 
@@ -21,16 +23,17 @@ except ImportError:
 
 
 
-async def political_bias(text: str, test_mode=False) -> dict:
+async def political_bias(text: str) -> dict:
 
-    if test_mode:
+    if utils.TEST:
+        print("Test active political bias")
         return {
             "probabilities": {
                 "left": 0.3,
                 "center": 0.4,
                 "right": 0.3,
             },
-            "predicted_bias": "test_mode_center",
+            "predicted_bias": "test_center",
         }
 
     if device == 'cuda':
@@ -91,10 +94,11 @@ async def political_bias(text: str, test_mode=False) -> dict:
 
         return json_response
 
-async def llm_summarize(text: str, max_length: int = 130, min_length: int = 40, test_mode=False) -> str:
+async def llm_summarize(text: str, max_length: int = 130, min_length: int = 40) -> str:
 
-    if test_mode:
-        return "Test mode active summary"
+    if utils.TEST:
+        print("Test active summary")
+        return "Test active summary"
 
     if device == 'cuda':
         summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
