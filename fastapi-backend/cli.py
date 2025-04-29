@@ -31,6 +31,10 @@ def process_article(url, json_output, test, no_cache):
         utils.TEST = 1
 
     """Analyze an article from the given URL."""
+
+    if test:
+        no_cache = True
+
     result = asyncio.run(process_article_wrapper(url, cache=not no_cache))
 
     if json_output:

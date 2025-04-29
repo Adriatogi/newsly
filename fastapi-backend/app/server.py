@@ -48,7 +48,7 @@ async def process_article_db(url: str, cache=True):
         new_article.summary = analysis["summary"]
         new_article.bias = analysis["bias"]
 
-        if not cache:
+        if cache:
             print("Caching article to db")
             article = add_article_to_db(clean_url, new_article)
         else:
