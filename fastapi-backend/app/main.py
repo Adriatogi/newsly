@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.types import ArticleAnalysisRequest
+from app.newsly_types import ArticleAnalysisRequest
 from app.utils import process_article_db
 
 # dotenv
