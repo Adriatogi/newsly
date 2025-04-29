@@ -1,5 +1,4 @@
 from pydantic import BaseModel
-from transformers import AutoTokenizer, AutoModelForSequenceClassification, pipeline
 from app.clients import generate_together
 from app.utils import extract_json
 
@@ -7,6 +6,7 @@ class ArticleAnalysisRequest(BaseModel):
     url: str
 
 try:
+    from transformers import AutoTokenizer, AutoModelForSequenceClassification, pipeline
     import torch
     if torch.cuda.is_available():
         device = torch.device('cuda')

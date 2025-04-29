@@ -1,6 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Image } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, Text, StyleSheet, ScrollView, Image, SafeAreaView } from 'react-native';
 
 const NewsCard: React.FC<{ title: string; 
   image: any; 
@@ -111,7 +110,9 @@ const cardStyles = StyleSheet.create({
 const Feed: React.FC = () => {
   return (
     <SafeAreaView style={styles.safeArea}>
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView contentContainerStyle={styles.container}
+      showsVerticalScrollIndicator={false}
+    >
       <Text style={styles.heading}>NEWSLY</Text>
       <NewsCard
         title="Astronauts Stuck on ISS 'Confident' Starliner Will Get Them Home"
@@ -139,31 +140,16 @@ const Feed: React.FC = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#FFFFF4",
+    backgroundColor: "white",
   },
   container: {
-    padding: 20,
+    padding: 25,
   },
   heading: {
     fontSize: 40,
     fontWeight: "bold",
     marginBottom: 20,
     color: "#152B3F",
-  },
-
-  postContainer: {
-    marginBottom: 20,
-    paddingBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ccc',
-  },
-  postTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 5,
-  },
-  postContent: {
-    fontSize: 16,
   },
 });
 

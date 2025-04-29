@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import { Text, View, TextInput, StyleSheet, Button, ScrollView } from "react-native";
+import { Text, View, TextInput, StyleSheet, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Button } from '@rneui/themed';
 
 interface AnalysisData {
   source: string;
@@ -15,31 +16,50 @@ export default function App() {
   const [url, setUrl] = useState("");
   const [analysisData, setAnalysisData] = useState<AnalysisData[] | null>(null);
   const [loading, setLoading] = useState(false);
+  const [endpointData, setEndpointData] = useState("");
 
-  const handleAnalyzeArticle = () => {
+  let fetchedData: string = "";
+
+  const handleAnalyzeArticle = async () => {
+
     setLoading(true);
+
+    try {
+      const response = await fetch('https://78r8cpg45j.us-east-2.awsapprunner.com/', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+  
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+  
+      const data = await response.json();
+
+      fetchedData = JSON.stringify(data, null, 2);
+      setEndpointData(fetchedData);
+  
+    } catch (error) {
+      console.error('Error fetching from root endpoint:', error);
+    }
+
     setAnalysisData(null);
+
+    const dummyData: AnalysisData[] = [
+      {
+        source: "Example News Source",
+        bias: "Left",
+        fallacies: ["Ad Hominem"],
+        misinformation: ["Fact Check 1", "Fact Check 2"],
+        contextSummary: fetchedData,
+      }
+    ];
+
+    setAnalysisData(dummyData);
+    setLoading(false); 
     
-    setTimeout(() => {
-      const dummyData: AnalysisData[] = [
-        {
-          source: "Global Times",
-          bias: "Left-leaning",
-          fallacies: ["Straw man", "False analogy"],
-          misinformation: ["Unverified claim"],
-          contextSummary: "Highlights the economic implications and policy debates surrounding the article topic.",
-        },
-        {
-          source: "Daily News",
-          bias: "Right-leaning",
-          fallacies: ["Slippery slope"],
-          misinformation: [],
-          contextSummary: "Focuses on contrasting political perspectives and historical context relevant to the issue.",
-        },
-      ];
-      setAnalysisData(dummyData);
-      setLoading(false);
-    }, 2000);
   };
 
   return (
@@ -58,7 +78,17 @@ export default function App() {
         autoCapitalize="none"
       />
       <View style={styles.buttonContainer}>
-        <Button title="Analyze Article" onPress={handleAnalyzeArticle} disabled={!url || loading} />
+        <Button 
+        title="Analyze Article" 
+        titleStyle={{ fontWeight: "bold" }}
+        onPress={handleAnalyzeArticle} 
+        disabled={!url || loading} 
+        radius={15}
+        color={"#152B3F"}
+        raised={true}
+        containerStyle={{ width: "85%", alignSelf: "center", marginTop: 20 }}
+        />
+
       </View>
       {loading && <Text style={styles.loadingText}>Analyzing article...</Text>}
       {analysisData && (
@@ -83,14 +113,14 @@ export default function App() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#FFFFF4",
+    backgroundColor: "white",
   },
   container: {
     paddingVertical: 40,
     paddingHorizontal: 20,
     flexGrow: 1,
     alignItems: "center",
-    backgroundColor: "#FFFFF4"
+    backgroundColor: "#white"
   }, 
   heading: {
     fontSize: 40,
