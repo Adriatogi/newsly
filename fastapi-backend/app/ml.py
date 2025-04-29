@@ -1,6 +1,6 @@
-import torch
-from pydantic import BaseModel
-from transformers import AutoTokenizer, AutoModelForSequenceClassification, pipeline
+# import torch
+
+# from transformers import AutoTokenizer, AutoModelForSequenceClassification, pipeline
 
 
 async def llm_summarize(text: str) -> str:
