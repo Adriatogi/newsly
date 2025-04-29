@@ -6,5 +6,7 @@ newspaper4k
 python-dotenv
 lxml_html_clean
 
+modal
+
 # transformers
 # torch
