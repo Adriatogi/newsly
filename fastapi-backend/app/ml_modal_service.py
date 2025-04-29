@@ -28,14 +28,26 @@ hf_cache_vol = modal.Volume.from_name("huggingface-cache", create_if_missing=Tru
     volumes={"/root/.cache/huggingface": hf_cache_vol},
 )
 def summarize(text: str) -> str:
-    from transformers import pipeline
+    from transformers import pipeline, AutoTokenizer, AutoModelForSeq2SeqLM
     import torch
 
     # Check if CUDA is available
     print("cuda available:", torch.cuda.is_available())
 
-    summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
+    model = AutoModelForSeq2SeqLM.from_pretrained("facebook/bart-large-cnn")
+    tokenizer = AutoTokenizer.from_pretrained("facebook/bart-large-cnn")
+    max_input_tokens = model.config.max_position_embeddings
+
     print("model loaded")
+
+    tokens = tokenizer.encode(text, truncation=False)
+    print("number of tokens:", len(tokens))
+
+    if len(tokens) > max_input_tokens:
+        tokens = tokens[: max_input_tokens - 1]
+        text = tokenizer.decode(tokens, skip_special_tokens=True)
+
+    summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
 
     summary = summarizer(text, max_length=130, min_length=40, do_sample=False)
 

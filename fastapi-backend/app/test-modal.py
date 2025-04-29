@@ -1,75 +1,14 @@
-from ml_modal_service import summarize, political_bias
+import modal
+
+summarize = modal.Function.from_name("newsly-modal-test", "summarize")
+political_bias = modal.Function.from_name("newsly-modal-test", "political_bias")
 
 if __name__ == "__main__":
     # Example usage
-    text = """
-    Power has been restored to tens of millions of people across almost all of Spain and Portugal, but disruptions to transport services were expected to stretch into a second day as questions mount over what caused a massive blackout.
+    text = "Editor’s Note: If you are in the US and you or a loved one have contemplated suicide, call the National Suicide and Crisis Lifeline at 988 or 1-800-273-TALK (8255) to connect with a trained counselor. Outside the US, a worldwide directory of resources and international hotlines is provided by the International Association for Suicide Prevention, and you can turn to Befrienders Worldwide.\n\nAlmost exactly one year ago, 14-year-old Adriana Kuch was attacked by a group of teens in a hallway of Central Regional High School in Berkeley Township, New Jersey. No one expected it to be the last week of her life.\n\nAdriana had been bullied leading up to the assault on February 1, 2023, her family said. The gruesome attack was captured on video and promptly uploaded to social media, where Adriana became the target of more vitriol and cyberbullying.\n\nLess than two days later, Adriana killed herself in her home as “a result of the emotional distress, humiliation, and embarrassment she experienced,” according to a lawsuit filed by her family this week against the Central Regional Board of Education, the school district’s former superintendent and others.\n\n“Adriana was the light of our lives, and one year after her horrific and needless death, we are still waiting for justice,” her father Michael Kuch said in a statement provided by the family’s attorney.\n\n“It’s clear this school has a serious bullying problem that none of the school administrators care to admit or address.”\n\nThe defendants in the lawsuit include the Central Regional Board of Education; Triantafillos Parlapanides, who was the school district’s superintendent at the time of the assault; Irene Marousis, who was the Central Regional High School principal at the time; and Darryl Heale, who was the school’s assistant principal and “Anti-bullying specialist” at the time, according to the lawsuit.\n\nCNN has reached out to each of those defendants for comment.\n\nFour juveniles faced criminal charges in connection with the attack. One was charged with aggravated assault, two faced charges of conspiracy to commit aggravated assault, and the fourth was charged with harassment. CNN has asked the Ocean County prosecutor’s office Tuesday for an update on those criminal cases.\n\nWhat the video shows\n\nThe video, obtained and reviewed by CNN, shows Adriana being hit in the face with a water bottle several times in a hallway. It also shows Adriana getting punched and kicked. The high school freshman suffered bruising and briefly blacked out, her father later said.\n\nThe footage was posted that same day on social media platforms, including TikTok. A slew of hateful comments and online bullying followed, culminating in Adriana ending her own life, her father said.\n\n“Adriana didn’t take her life because of TikTok,” family attorney Bill Krais said. “She was physically attacked, she was attacked online, and the school failed to protect her.”\n\nWhat the lawsuit claims\n\nThe civil lawsuit, filed Monday, accused the defendants of negligence, defamation and infliction of emotional distress. The lawsuit also alleges the then-superintendent invaded the family’s privacy by making false statements about their family history, including allegations of infidelity and drug use.\n\nThe school board “had a duty to supervise, monitor, and train staff regarding harassment, intimidation, and bullying, and was responsible for developing, implementing, and disseminating anti-harassment, intimidation, and bullying policies and programs consistent with the New Jersey Anti-Bullying Statute,” the civil complaint says.\n\nIt also said the defendants “knew or should have known that the physical assaults and attacks within their schools, specifically within Central Regional High School, were being recorded and posted to various social media sites by other students, contrary to School Board policy.”\n\nAnd even though school board policy allowed the defendants to “review and take possession of students’ cell phones used to record and post such physical assaults and attacks, thus minimizing the risk that such recordings would be widely distributed to social media sites,” they “failed to follow that policy,” the lawsuit states.\n\nThe lawsuit also alleges the superintendent at the time did not pursue criminal charges against the attackers.\n\n“Based on information and belief, the decision not to pursue criminal charges against the students who perpetrated this attack was done, according to defendant Parlapanides, to avoid saddling the students who committed the attack with a ‘double whammy,’ i.e., potential discipline by both school authorities and law enforcement,” the lawsuit says.\n\nParlapanides resigned as superintendent in the wake of Adriana’s death, as parents and students demanded the school improve its handling of bullying.\n\nThe lawsuit requests compensatory and punitive damages but does not specify the amounts.\n\n“Under New Jersey law, a party is not permitted to request a specific amount of damages in the complaint,” said Krais, the attorney representing the Kuch family. “That said, we are seeking punitive damages sufficient to punish the egregious conduct here by the superintendent and other school officials as the facts may develop.”\n\nWhy another family has sued\n\nMore than a year before Adriana’s death, another 14-year-old at the same high school was assaulted even after she had reported threats being made against her to the school, a separate lawsuit filed in October 2022 alleges.\n\nAlthough the teen isn’t fully named in the lawsuit, her mother confirmed that her daughter Olivia O’Dea is the lead plaintiff in the case.\n\nIn January 2022, Olivia was physically assaulted by two teenagers – one of whom had allegedly sent Olivia threatening text messages, the lawsuit claims. The assault was allegedly filmed by one of the teenagers who had been threatening Olivia and who later posted it on a social media platform, the lawsuit states.\n\nOlivia’s mother, Racheal O’Dea, told CNN that her daughter was hit in the back of the head, neck, and back approximately 30 times and suffered a significant concussion. She underwent counseling for PTSD and six months of physical therapy, her mother said.\n\nThe defendants in O’Dea’s lawsuit include the Central Regional School District and the high school’s principal and vice principal at the time. Last year, a lawyer representing the Central Regional School District, Central Regional Board of Education, the principal and vice principal filed an answer to the lawsuit denying the accusations. CNN has also reached out to defendants for comment.\n\nThe O’Dea family’s civil case is currently in the discovery phase, attorney Jonathan Ettman told CNN on Tuesday. He said the former superintendent, Parlapanides, has also been added to the list of defendants.\n\nO’Dea offered her condolences to Adriana’s family, saying the tragedy they’ve endured should have never happened.\n\n“It’s devastating those parents are living every parent’s worst nightmare,” O’Dea said. “This could’ve been prevented."
 
-Both countries remain under states of emergency after electrical supply was lost across the entire Iberian Peninsula, and in part of France, on Monday. The outage brought businesses to a standstill, halted elevators, knocked out traffic lights, and caused chaos on roads and in airports.
+    bias = political_bias.remote(text)
+    print("Bias:", bias)
 
-On Tuesday morning, Spain’s grid operator said power had been supplied to 99% of the country, but the transport minister warned some trains would not operate, or would run at a reduced capacity - including the high-speed rail network.
-
-Late Monday, power had been restored to most of Portugal, with videos on social media showing people cheering at night as the lights came back on.
-
-Spanish Prime Minister Pedro Sanchez said on Monday that authorities were still not sure what caused the blackout, as his Portuguese counterpart blamed Spain.
-
-Portugal’s Prime Minister Luis Montenegro on Monday said he did not yet know what had caused the blackout, but it “did not originate in Portugal” and “everything indicates” the problem started in Spain.
-
-The outage took out lighting and power sockets, and caused subway systems to suddenly fail. In Madrid, traffic piled up on the roads after the lights went out.
-
-“I was driving and suddenly there was no traffic lights … It was a bit of a jungle,” Luis Ibáñez Jiménez told CNN. “I saw a massive bus coming, and I had to accelerate a lot to go past it.”
-
-The blackout’s impact was dramatic: transport hubs were shuttered and governments in both countries, which share a population of around 60 million people, hastily arranged emergency meetings to coordinate a response.
-
-A dark metro station in Madrid. Passengers filtered out of stations after the outage stopped trains.
-A dark metro station in Madrid. Passengers filtered out of stations after the outage stopped trains. Burak Akbulut/Anadolu/Getty Images
-Spain’s Interior Ministry declared a state of emergency in the regions of Andalucia, Extremadura, Murcia, La Rioja and Madrid. After a late-night cabinet meeting, Portugal’s Montenegro declared an energy crisis, with the country’s grid operator warning that fully restoring power would be a “complex operation.”
-
-Earlier, Madrid’s Mayor José Luis Martinez Almeida asked residents of the Spanish capital to minimize their movements and only call emergency services if it was truly urgent. He also called on people to clear the roads for emergency workers. Later in the day, Madrid’s emergency services provider urged the government to declare a national emergency, and local leader Isabel Díaz Ayuso asked the country to deploy the army.
-
-Antonio Costa – president of the European Council and Portugal’s former prime minister – said although the cause of the outage was not clear, there were “no indications” of a cyberattack.
-
-An abandoned local market Vigo, northwest Spain. The Spanish government chaired an emergency meeting, but authorities warned it could take hours to restore power.
-An abandoned local market Vigo, northwest Spain. The Spanish government chaired an emergency meeting, but authorities warned it could take hours to restore power. Miguel Riopa/AFP/Getty Images
-João Faria Conceição, head of grid operator Redes Energéticas Nacionais (REN), said Portugal was badly affected because it imports electricity from Spain in the morning, because the neighboring nation is one hour ahead and electricity produced by its solar plants is cheaper than producing it internally, during those hours.
-
-“We are peripheral,” Conceição told a news conference Monday evening. While Spain received support from France and Morocco, Portugal had no country to turn to for emergency supplies of electricity.
-
-Passengers stand next to a halted train near Cordoba.
-Passengers stand next to a halted train near Cordoba. Javier Soriano/AFP/Getty Images
-Confusion grips major cities
-Monday’s blackout hit a huge and busy swathe of southern Europe. Dozens of Iberian cities, like Madrid, Lisbon, Barcelona, Seville and Valencia, are major hubs for transport, finance and tourism. Two of the five busiest airports in the European Union in 2023 were Madrid’s and Barcelona’s, according to EU data.
-
-For a few hours, modern routines were suspended: cash replaced card payments, police officers used arm signals to direct traffic, and restaurants, supermarkets and stores closed their doors. Madrid’s firefighters carried out 174 “elevator interventions” across the city on Monday, its Emergency Information Office said, and some shoppers stocked up on essentials and canned goods.
-
-The worst-case scenarios appeared to have been averted, at least in the first hours of the blackout. Spain’s nuclear sites were declared operational and safe, while Portugal’s National Institute for Medical Emergencies said it had “activated its contingency plan,” running its telephone and IT systems through a back-up generator. Spain’s health ministry said the same process happened in hospitals there.
-
-A metro station in Madrid was closed off with tape on Monday; the subway shut down in the capital, leaving passengers stranded.
-A metro station in Madrid was closed off with tape on Monday; the subway shut down in the capital, leaving passengers stranded. Susana Vera/Reuters
-But travel was hit harder. Flights at major airports in the region were suddenly delayed or canceled, with travelers scrambling to adapt; online flight trackers reported that several airports saw their frequent departures suddenly halted after midday. Portugal’s flag carrier TAP Air Portugal told people not to travel to the airport until further notice.
-
-Ellie Kenny, a holidaymaker inside Lisbon’s Humberto Delgado airport, said hundreds of people were stood in the dark in lines, with no air conditioning or running water. Shops were only accepting cash, she told CNN.
-
-Trains were also suspended in Spain. And darkness suddenly descended in subway tunnels; video posted on social media showed blackened train cars stuck in standstill on platforms in Madrid, where the metro was suspended and entrances to stations were taped off.
-
-An online graph displaying real-time information on Spain's electricity demand shows a massive drop-off the moment power was knocked out in the country.
-An online graph displaying real-time information on Spain's electricity demand shows a massive drop-off the moment power was knocked out in the country. Red Electrica
-Sporting events were impacted too. Tennis fans at the Madrid Open filed out of courts after the outage caused play to be suspended.
-
-Some parts of southern France, near the Spanish border, felt a more sporadic impact.
-
-Emilie Grandidie, a spokeswoman for France’s electricity transmission operator RTE, told CNN there was “a small power cut” in the French Basque Country; “It lasted only a couple of minutes and was restored very quickly,” she said.
-
-In downtown Lisbon, and in cities across the Iberian peninsula, dark traffic lights led to confusion on the roads.
-In downtown Lisbon, and in cities across the Iberian peninsula, dark traffic lights led to confusion on the roads. Armando Franca/AP
-For several hours on Monday, tens of millions of people were asking each other when power would return, and why it was knocked out in the first place.
-
-Neither question was easy to answer. But once power returns, it could still take days to untangle the damage caused by Monday’s worrying blackout.
-
-Spain’s transportation minister said medium and long-distance trains won’t resume service until at least Tuesday, and the impact of a huge backlog in flights could stretch throughout the week.
-    """
     summary = summarize.remote(text)
     print("Summary:", summary)
-
-    # bias = political_bias.remote(text)
-    # print("Bias:", bias)
