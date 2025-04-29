@@ -29,10 +29,8 @@ hf_cache_vol = modal.Volume.from_name("huggingface-cache", create_if_missing=Tru
 )
 def summarize(text: str) -> str:
     from transformers import pipeline, AutoTokenizer, AutoModelForSeq2SeqLM
-    import torch
 
-    # Check if CUDA is available
-    print("cuda available:", torch.cuda.is_available())
+    print("starting summarization")
 
     model = AutoModelForSeq2SeqLM.from_pretrained("facebook/bart-large-cnn")
     tokenizer = AutoTokenizer.from_pretrained("facebook/bart-large-cnn")
