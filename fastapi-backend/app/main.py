@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from app.types import ArticleAnalysisRequest
-from app.utils import process_article_db
+from app.server import process_article_db
 import app.utils as utils
 import uvicorn
 import argparse
