@@ -6,5 +6,8 @@ newspaper4k
 python-dotenv
 lxml_html_clean
 
-# transformers
-# torch
+# Commenting these out because we don't need for deployment 
+# transformers==4.38.2
+# torch==2.2.1
+# sagemaker
+# boto3
