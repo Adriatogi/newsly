@@ -1,10 +1,34 @@
-import React, { useState } from "react";
-import { Text, View, TextInput, StyleSheet, ScrollView } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useMemo, useState, useEffect, useRef} from "react";
+import { Text, View, TextInput, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity} from "react-native";
 import { Button } from '@rneui/themed';
+import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
+
+const getBiasPos = (bias: string) => {
+  switch (bias.toLowerCase()) {
+    case 'left':
+      return "10%";
+    case 'right':
+      return "90%";
+    case 'center':
+      return "50%";
+    default:
+      return "50%";
+  }
+};
+
+const formatDate = (isoString: string) =>
+  new Date(isoString).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+
 
 interface AnalysisData {
-  source: string;
+  source: string; 
+  title: string;
+  authors: string[];
+  pubDate: string;
   bias: string;
   fallacies: string[];
   misinformation: string[];
@@ -12,6 +36,13 @@ interface AnalysisData {
 }
 
 export default function App() {
+  const snapPoints = useMemo(() => ['25%', '50%', '90%'], []);
+
+  const bottomSheetRef = useRef<BottomSheet>(null);
+
+  const handleClosePress = () => bottomSheetRef.current?.close();
+  const handleOpenPress = () => bottomSheetRef.current?.expand();
+
 
   const [url, setUrl] = useState("");
   const [analysisData, setAnalysisData] = useState<AnalysisData[] | null>(null);
@@ -25,41 +56,43 @@ export default function App() {
     setLoading(true);
 
     try {
-      const response = await fetch('https://78r8cpg45j.us-east-2.awsapprunner.com/', {
-        method: 'GET',
+      const response = await fetch('https://78r8cpg45j.us-east-2.awsapprunner.com/articles/analyze', {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({ url }),
       });
-  
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-  
-      const data = await response.json();
 
-      fetchedData = JSON.stringify(data, null, 2);
+      const result = await response.json();
+      fetchedData = JSON.stringify(result, null, 2);
       setEndpointData(fetchedData);
-  
+
+      // Parse real analysis data from API response
+      const parsed: AnalysisData[] = [
+        {
+          source: result.source || "Unknown Source",
+          title: result.title || "Unknown Title",
+          authors: result.authors || ["Unknown Author"],
+          pubDate: result.published_date || "Unknown Date",
+          bias: result.bias?.predicted_bias || "center",
+          fallacies: result.fallacies || [],
+          misinformation: result.misinformation || [],
+          contextSummary: result.summary || result.text || "",
+        }
+      ];
+      setAnalysisData(parsed);
+      setLoading(false);
+
     } catch (error) {
       console.error('Error fetching from root endpoint:', error);
+      setLoading(false);
     }
 
-    setAnalysisData(null);
-
-    const dummyData: AnalysisData[] = [
-      {
-        source: "Example News Source",
-        bias: "Left",
-        fallacies: ["Ad Hominem"],
-        misinformation: ["Fact Check 1", "Fact Check 2"],
-        contextSummary: fetchedData,
-      }
-    ];
-
-    setAnalysisData(dummyData);
-    setLoading(false); 
-    
   };
 
   return (
@@ -68,44 +101,113 @@ export default function App() {
       contentContainerStyle={styles.container}
       showsVerticalScrollIndicator={false}
       >
-      <Text style={styles.subheadingBold}>Analyze News Articles</Text> 
-      <Text style={styles.subheading}>Enter the URL of a news article:</Text>
+      <Text style={styles.subheadingBold}>Analyze Any News Article</Text> 
       <TextInput
         style={styles.input}
         placeholder="https://example.com/news-article"
         value={url}
+        placeholderTextColor={"#a9a9a9"}
         onChangeText={setUrl}
         autoCapitalize="none"
       />
       <View style={styles.buttonContainer}>
         <Button 
-        title="Analyze Article" 
-        titleStyle={{ fontWeight: "bold" }}
+        title="Analyze" 
+        titleStyle={{ fontWeight: "bold", fontSize: 22 }}
         onPress={handleAnalyzeArticle} 
         disabled={!url || loading} 
         radius={15}
         color={"#152B3F"}
         raised={true}
-        containerStyle={{ width: "85%", alignSelf: "center", marginTop: 20 }}
+        size="lg"
         />
 
       </View>
       {loading && <Text style={styles.loadingText}>Analyzing article...</Text>}
       {analysisData && (
         <View style={styles.dashboard}>
-          <Text style={styles.dashboardHeading}>Article Analysis Dashboard</Text>
+          <Text style={styles.dashboardHeading}>Analysis Dashboard</Text>
           {analysisData.map((item, index) => (
-            <View key={index} style={styles.card}>
-              <Text style={styles.sourceName}>{item.source}</Text>
-              <Text>Political Bias: {item.bias}</Text>
-              <Text>Logical Fallacies: {item.fallacies.join(", ")}</Text>
-              <Text>Misinformation Flags: {item.misinformation.length > 0 ? item.misinformation.join(", ") : "None"}</Text>
-              <Text>Context Summary: {item.contextSummary}</Text>
+            <View key={index}>
+              <View style={styles.mainCard}>              
+                <Text style={styles.mainCardContent}>{item.title}</Text>
+                <Text style={{
+                  fontSize: 16,
+                  marginTop: 7,
+                }}>{item.authors} • {formatDate(item.pubDate)} </Text>
+              </View>
+              <View style={styles.mainCard}>
+              <Text style={styles.mainCardContent}>Political Bias</Text>
+                <View style={styles.biasContainer}>
+                  <Text style={styles.biasLabel}>L</Text>
+                  <View style={styles.biasBar}>
+                    <View
+                      style={[
+                        styles.biasDot,
+                        { left: getBiasPos(item.bias) },
+                      ]}
+                    />
+                  </View>
+                  <Text style={styles.biasLabel}>R</Text>
+                </View>
+              </View>
+              <TouchableOpacity 
+                style={[styles.mainCard, {shadowColor: "#ccc", shadowOpacity: 1, shadowRadius: 6, shadowOffset: { width: 4, height: 4 }}]}
+                onPress={handleOpenPress}
+              >
+                <Text style={styles.mainCardContent}>Context Summary</Text>
+                <Text style={{
+                  fontSize: 16,
+                  marginTop: 5,
+                }}>{item.contextSummary}</Text>
+              </TouchableOpacity>
+              <View style={styles.subcardsContainer}>
+          <View style={styles.subCard}>
+            <Text style={[styles.mainCardContent, {fontSize: 16}]}>Logical Fallacies</Text>
+            {item.fallacies.length > 0 ? (
+              <Text style={{
+                fontSize: 16,
+                marginTop: 5,
+              }}>{item.fallacies.join("\n")}</Text>
+            ) : (
+              <Text>None</Text>
+            )}
+          </View>
+          <View style={styles.subCard}>
+            <Text style={[styles.mainCardContent, {fontSize: 17}]}>Misinformation Flags</Text>
+            {item.misinformation.length > 0 ? (
+              <Text style={{
+                fontSize: 16,
+                marginTop: 5,
+              }}>{item.misinformation.join("\n")}</Text>
+            ) : (
+              <Text>None</Text>
+            )}
+          </View>
+        </View>
             </View>
           ))}
         </View>
       )}
     </ScrollView>
+    <BottomSheet
+        ref={bottomSheetRef}
+        index={-1}
+        snapPoints={snapPoints}
+        enablePanDownToClose={true}
+        backgroundStyle={{ backgroundColor: '#f0f0f0' }}           // make it visible
+        handleIndicatorStyle={{ backgroundColor: '#888', width: 40 }}
+      >
+        <BottomSheetView style={styles.bottomSheetContent}>
+          <Text style={styles.subheadingBold}>Context Summary</Text>
+          <ScrollView showsVerticalScrollIndicator={false}>
+            <Text style={{
+              fontSize: 16,
+              marginTop: 5,
+            }}>{endpointData}</Text>
+          </ScrollView>
+        </BottomSheetView>
+      </BottomSheet>
     </SafeAreaView>
   );
 }
@@ -117,7 +219,7 @@ const styles = StyleSheet.create({
   },
   container: {
     paddingVertical: 40,
-    paddingHorizontal: 20,
+    paddingHorizontal: 30,
     flexGrow: 1,
     alignItems: "center",
     backgroundColor: "#white"
@@ -140,18 +242,21 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 10,
     paddingHorizontal: 10,
-    backgroundColor: "#fff",
+    backgroundColor: "#FBFBFC",
     marginBottom: 20,
   },
   subheadingBold: {
-    fontSize: 28,
+    fontSize: 40,
     marginBottom: 20,
+    marginLeft: 13,
+    marginRight: 13,
     fontWeight: "bold",
     color: "#152B3F",
+    textAlign: "center",
   },
   buttonContainer: {
     width: "90%",
-    marginBottom: 20,
+    marginBottom: 10,
   },
   loadingText: {
     marginTop: 20,
@@ -163,22 +268,68 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   dashboardHeading: {
-    fontSize: 24,
+    fontSize: 27,
     fontWeight: "bold",
     marginBottom: 20,
     textAlign: "center",
+
   },
-  card: {
+  mainCard: {
     backgroundColor: "#fff",
     padding: 15,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: "#ccc",
-    marginBottom: 20,
+    marginBottom: 12,
   },
-  sourceName: {
+  mainCardContent: {
     fontSize: 20,
     fontWeight: "bold",
-    marginBottom: 10,
+  },
+
+  subcardsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: "100%",
+    marginBottom: 12,
+  },
+
+  subCard: { // half the size of the main card
+    backgroundColor: "#fff",
+    padding: 15,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    width: "48.5%",
+  },
+
+  biasContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  biasLabel: {
+    fontSize: 16,
+  },
+  biasBar: {
+    flex: 1,
+    height: 4.3,
+    backgroundColor: '#ccc',
+    marginHorizontal: 5,
+    position: 'relative',
+    borderRadius: 4,
+  },
+  biasDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#152B3F',
+    position: 'absolute',
+    top: -4,
+  },
+  bottomSheetContent: {
+    flex: 1,
+    alignItems: "center",
+    padding: 20,
   },
 });

@@ -31,7 +31,7 @@ export default function tabsLayout() {
           tabBarIcon: ({ color }) => (
             <FontAwesome name="search-plus" size={24} color={color} />
           ),
-        }}
+        }} 
       />
     </Tabs>
   );
