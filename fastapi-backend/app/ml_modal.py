@@ -28,9 +28,9 @@ hf_cache_vol = modal.Volume.from_name("huggingface-cache", create_if_missing=Tru
     volumes={"/root/.cache/huggingface": hf_cache_vol},
 )
 def summarize(text: str) -> str:
-    from transformers import pipeline, AutoTokenizer, AutoModelForSeq2SeqLM
-
     print("starting summarization")
+
+    from transformers import pipeline, AutoTokenizer, AutoModelForSeq2SeqLM
 
     # get the model and tokenizer
     model = AutoModelForSeq2SeqLM.from_pretrained("facebook/bart-large-cnn")
