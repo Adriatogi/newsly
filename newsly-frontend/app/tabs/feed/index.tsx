@@ -3,6 +3,8 @@ import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity } from 'rea
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
+
+
 const NewsCard: React.FC<{
   title: string;
   image: any;
@@ -189,6 +191,7 @@ const Feed: React.FC = () => {
           />
         </TouchableOpacity>
       </ScrollView>
+
     </SafeAreaView>
   );
 };
@@ -196,10 +199,10 @@ const Feed: React.FC = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#FFFFF4",
+    backgroundColor: "white",
   },
   container: {
-    padding: 20,
+    padding: 25,
   },
   heading: {
     fontSize: 40,
