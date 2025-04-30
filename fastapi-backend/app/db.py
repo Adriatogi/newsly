@@ -3,6 +3,8 @@ from supabase import create_client, Client
 from newspaper import Article
 from datetime import datetime
 
+import app.utils as utils
+
 # dotenv
 from dotenv import load_dotenv
 
@@ -22,11 +24,28 @@ def get_all_articles():
 
 def get_article_by_url(url: str):
     # Get article by URL from the database
+
+    # if testing, we didn't find it
+    if utils.TEST:
+        return None
+
     response = supabase.table("articles").select("*").eq("url", url).execute()
     if response.data:
         return response.data[0]
     else:
         return None
+
+
+def delete_article_by_id(article_id: str):
+    # Delete an article by ID from the database
+    response = supabase.table("articles").delete().eq("id", article_id).execute()
+    return response.data
+
+
+def delete_article_by_url(url: str):
+    # Delete an article by URL from the database
+    response = supabase.table("articles").delete().eq("url", url).execute()
+    return response.data
 
 
 def increment_article_read_count(article_id: str, previous_read_count: int = 0):
@@ -58,11 +77,17 @@ def add_article_to_db(cleaned_url: str, article: Article):
         "published_date": article.publish_date.isoformat(),
         "keywords": article.keywords,
         "last_analyzed_at": datetime.now().isoformat(),
+        "summary": article.summary,
+        "bias": article.bias,
     }
 
     # Add article to the database
-    response = supabase.table("articles").insert(parsed_article).execute()
-    if response.data:
-        return response.data[0]
+    # TODO: Is this right for testing?
+    if not utils.TEST:
+        response = supabase.table("articles").insert(parsed_article).execute()
+        if response.data:
+            return response.data[0]
+    else:
+        return parsed_article
 
     return None
