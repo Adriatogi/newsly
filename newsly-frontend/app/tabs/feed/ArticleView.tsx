@@ -115,7 +115,7 @@ export default function ArticleView() {
 }
 
 const styles = StyleSheet.create({
-  container: { flexGrow: 1, backgroundColor: '#FFFFF4', padding: 20, justifyContent: 'center' },
+  container: { flexGrow: 1, backgroundColor: '#white', padding: 20, justifyContent: 'center' },
   box: {
     backgroundColor: '#fff', borderRadius: 16, padding: 20, paddingBottom: 40,
     shadowColor: '#000', shadowOpacity: 0.05, shadowOffset: { width: 0, height: 2 },
