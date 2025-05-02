@@ -26,6 +26,7 @@ hf_cache_vol = modal.Volume.from_name("huggingface-cache", create_if_missing=Tru
     gpu="L4",
     image=image,
     volumes={"/root/.cache/huggingface": hf_cache_vol},
+    scaledown_window=300,  # 5 minutes idle timeout
 )
 def summarize(text: str) -> str:
     print("starting summarization")
@@ -55,7 +56,12 @@ def summarize(text: str) -> str:
     return summary[0]["summary_text"]
 
 
-@app.function(gpu="L4", image=image, volumes={"/root/.cache/huggingface": hf_cache_vol})
+@app.function(
+    gpu="L4",
+    image=image,
+    volumes={"/root/.cache/huggingface": hf_cache_vol},
+    scaledown_window=300,  # 5 minutes idle timeout
+)
 async def political_bias(text: str) -> dict:
     from transformers import AutoTokenizer, AutoModelForSequenceClassification
     import torch
