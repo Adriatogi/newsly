@@ -133,9 +133,9 @@ const Feed: React.FC = () => {
   const isDark = colorScheme === 'dark';
 
   return (
-<SafeAreaView style={[styles.safeArea, { backgroundColor: isDark ? '#152B3F' : '#FFFFF4' }]}>
+<SafeAreaView style={[styles.safeArea, { backgroundColor: isDark ? '#152B3F' : 'white' }]}>
   <ScrollView contentContainerStyle={styles.container}>
-    <Text style={[styles.heading, { color: isDark ? '#FFFFF4' : '#152B3F' }]}>
+    <Text style={[styles.heading, { color: isDark ? 'white' : '#152B3F' }]}>
       NEWSLY
     </Text>
     
