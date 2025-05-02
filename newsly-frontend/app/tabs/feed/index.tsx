@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, useColorScheme } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, SafeAreaView, useColorScheme } from 'react-native';
 import { useRouter } from 'expo-router';
+
+
 
 const NewsCard: React.FC<{
   title: string;
@@ -132,17 +133,12 @@ const Feed: React.FC = () => {
   const isDark = colorScheme === 'dark';
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: isDark ? '#152B3F' : '#FFFFF4' }}>
-      <ScrollView contentContainerStyle={{ padding: 20 }}>
-        <Text style={{
-          fontSize: 40,
-          fontWeight: 'bold',
-          marginBottom: 20,
-          color: isDark ? '#FFFFF4' : '#152B3F',
-        }}>
-          NEWSLY
-        </Text>
-
+<SafeAreaView style={[styles.safeArea, { backgroundColor: isDark ? '#152B3F' : '#FFFFF4' }]}>
+  <ScrollView contentContainerStyle={styles.container}>
+    <Text style={[styles.heading, { color: isDark ? '#FFFFF4' : '#152B3F' }]}>
+      NEWSLY
+    </Text>
+    
         <TouchableOpacity
           onPress={() =>
             router.push({
@@ -191,8 +187,39 @@ NASA and Boeing have assured the public that the astronauts are safe and in good
           />
         </TouchableOpacity>
       </ScrollView>
+
     </SafeAreaView>
   );
 };
+
+const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: "white",
+  },
+  container: {
+    padding: 25,
+  },
+  heading: {
+    fontSize: 40,
+    fontWeight: "bold",
+    marginBottom: 20,
+    color: "#152B3F",
+  },
+  postContainer: {
+    marginBottom: 20,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ccc',
+  },
+  postTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 5,
+  },
+  postContent: {
+    fontSize: 16,
+  },
+});
 
 export default Feed;

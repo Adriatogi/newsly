@@ -140,7 +140,7 @@ const styles = (dark: boolean, expanded: boolean) =>
       backgroundColor: dark ? '#0B1724' : '#FDFDF8',
       borderRadius: 16,
       padding: 20,
-      paddingBottom: expanded? 10 : 50,
+      paddingBottom: expanded ? 10 : 50,
       shadowColor: '#000',
       shadowOpacity: 0.05,
       shadowOffset: { width: 0, height: 2 },
@@ -173,7 +173,7 @@ const styles = (dark: boolean, expanded: boolean) =>
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-    }, 
+    },
     biasIconWrapper: {
       backgroundColor: '#fff',
       borderRadius: 16,
@@ -182,6 +182,33 @@ const styles = (dark: boolean, expanded: boolean) =>
     },
     biasText: { color: '#fff', fontWeight: '600', fontSize: 15 },
     biasCaret: { fontSize: 22, fontWeight: '600', color: '#fff' },
+    highlights: { gap: 10, marginTop: 10 },
+    blue: {
+      backgroundColor: 'rgba(59,130,246,0.15)', padding: 10,
+      borderRadius: 6, fontSize: 14, color: dark ? '#fff' : '#152B3F'
+    },
+    red: {
+      backgroundColor: 'rgba(239,68,68,0.15)', padding: 10,
+      borderRadius: 6, fontSize: 14, color: dark ? '#fff' : '#152B3F'
+    },
+    footerBar: {
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      backgroundColor: dark ? '#FFFFF4' : '#152B3F',
+      paddingVertical: 8,
+      borderTopWidth: 0.5,
+      borderTopColor: dark ? '#444' : '#ccc',
+      alignItems: 'center',
+      borderBottomLeftRadius: 16,
+      borderBottomRightRadius: 16,
+    },
+    footerText: {
+      fontSize: 12,
+      color: dark ? '#152B3F' : '#fff',
+    },
+  });
 
     highlights: { gap: 10, marginTop: 10 },
     blue: {
