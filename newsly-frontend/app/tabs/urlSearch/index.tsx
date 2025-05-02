@@ -1,18 +1,13 @@
-import { useMemo, useState, useEffect, useRef} from "react";
-import { Text, View, TextInput, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity} from "react-native";
-import { Button } from '@rneui/themed';
+import { useMemo, useState, useEffect, useRef } from "react";
+import { Text, View, TextInput, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity } from "react-native";
 import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
 
 const getBiasPos = (bias: string) => {
   switch (bias.toLowerCase()) {
-    case 'left':
-      return "10%";
-    case 'right':
-      return "90%";
-    case 'center':
-      return "50%";
-    default:
-      return "50%";
+    case 'left': return "10%";
+    case 'right': return "90%";
+    case 'center': return "50%";
+    default: return "50%";
   }
 };
 
@@ -23,9 +18,8 @@ const formatDate = (isoString: string) =>
     day: 'numeric',
   });
 
-
 interface AnalysisData {
-  source: string; 
+  source: string;
   title: string;
   authors: string[];
   pubDate: string;
@@ -37,174 +31,134 @@ interface AnalysisData {
 
 export default function App() {
   const snapPoints = useMemo(() => ['25%', '50%', '90%'], []);
-
   const bottomSheetRef = useRef<BottomSheet>(null);
-
   const handleClosePress = () => bottomSheetRef.current?.close();
   const handleOpenPress = () => bottomSheetRef.current?.expand();
-
 
   const [url, setUrl] = useState("");
   const [analysisData, setAnalysisData] = useState<AnalysisData[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [endpointData, setEndpointData] = useState("");
 
-  let fetchedData: string = "";
-
   const handleAnalyzeArticle = async () => {
-
     setLoading(true);
-
     try {
       const response = await fetch('https://78r8cpg45j.us-east-2.awsapprunner.com/articles/analyze', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url }),
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const result = await response.json();
-      fetchedData = JSON.stringify(result, null, 2);
-      setEndpointData(fetchedData);
-
-      // Parse real analysis data from API response
-      const parsed: AnalysisData[] = [
-        {
-          source: result.source || "Unknown Source",
-          title: result.title || "Unknown Title",
-          authors: result.authors || ["Unknown Author"],
-          pubDate: result.published_date || "Unknown Date",
-          bias: result.bias?.predicted_bias || "center",
-          fallacies: result.fallacies || [],
-          misinformation: result.misinformation || [],
-          contextSummary: result.summary || result.text || "",
-        }
-      ];
+      const parsed: AnalysisData[] = [{
+        source: result.source || "Unknown Source",
+        title: result.title || "Unknown Title",
+        authors: result.authors || ["Unknown Author"],
+        pubDate: result.published_date || "Unknown Date",
+        bias: result.bias?.predicted_bias || "center",
+        fallacies: result.fallacies || [],
+        misinformation: result.misinformation || [],
+        contextSummary: result.summary || result.text || "",
+      }];
+      setEndpointData(JSON.stringify(result, null, 2));
       setAnalysisData(parsed);
-      setLoading(false);
-
     } catch (error) {
       console.error('Error fetching from root endpoint:', error);
+    } finally {
       setLoading(false);
     }
-
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
-    <ScrollView 
-      contentContainerStyle={styles.container}
-      showsVerticalScrollIndicator={false}
-      >
-      <Text style={styles.subheadingBold}>Analyze Any News Article</Text> 
-      <TextInput
-        style={styles.input}
-        placeholder="https://example.com/news-article"
-        value={url}
-        placeholderTextColor={"#a9a9a9"}
-        onChangeText={setUrl}
-        autoCapitalize="none"
-      />
-      <View style={styles.buttonContainer}>
-        <Button 
-        title="Analyze" 
-        titleStyle={{ fontWeight: "bold", fontSize: 22 }}
-        onPress={handleAnalyzeArticle} 
-        disabled={!url || loading} 
-        radius={15}
-        color={"#152B3F"}
-        raised={true}
-        size="lg"
+      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+        <Text style={styles.subheadingBold}>Analyze Any News Article</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="https://example.com/news-article"
+          value={url}
+          placeholderTextColor={"#a9a9a9"}
+          onChangeText={setUrl}
+          autoCapitalize="none"
         />
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity
+            onPress={handleAnalyzeArticle}
+            disabled={!url || loading}
+            style={{
+              backgroundColor: "#152B3F",
+              paddingVertical: 15,
+              borderRadius: 15,
+              alignItems: "center",
+              opacity: (!url || loading) ? 0.5 : 1
+            }}
+          >
+            <Text style={{ fontWeight: "bold", fontSize: 22, color: "white" }}>
+              Analyze
+            </Text>
+          </TouchableOpacity>
+        </View>
 
-      </View>
-      {loading && <Text style={styles.loadingText}>Analyzing article...</Text>}
-      {analysisData && (
-        <View style={styles.dashboard}>
-          <Text style={styles.dashboardHeading}>Analysis Dashboard</Text>
-          {analysisData.map((item, index) => (
-            <View key={index}>
-              <View style={styles.mainCard}>              
-                <Text style={styles.mainCardContent}>{item.title}</Text>
-                <Text style={{
-                  fontSize: 16,
-                  marginTop: 7,
-                }}>{item.authors} • {formatDate(item.pubDate)} </Text>
-              </View>
-              <View style={styles.mainCard}>
-              <Text style={styles.mainCardContent}>Political Bias</Text>
-                <View style={styles.biasContainer}>
-                  <Text style={styles.biasLabel}>L</Text>
-                  <View style={styles.biasBar}>
-                    <View
-                      style={[
-                        styles.biasDot,
-                        { left: getBiasPos(item.bias) },
-                      ]}
-                    />
+        {loading && <Text style={styles.loadingText}>Analyzing article...</Text>}
+        {analysisData && (
+          <View style={styles.dashboard}>
+            <Text style={styles.dashboardHeading}>Analysis Dashboard</Text>
+            {analysisData.map((item, index) => (
+              <View key={index}>
+                <View style={styles.mainCard}>
+                  <Text style={styles.mainCardContent}>{item.title}</Text>
+                  <Text style={{ fontSize: 16, marginTop: 7 }}>{item.authors} • {formatDate(item.pubDate)}</Text>
+                </View>
+                <View style={styles.mainCard}>
+                  <Text style={styles.mainCardContent}>Political Bias</Text>
+                  <View style={styles.biasContainer}>
+                    <Text style={styles.biasLabel}>L</Text>
+                    <View style={styles.biasBar}>
+                      <View style={[styles.biasDot, { left: getBiasPos(item.bias) }]} />
+                    </View>
+                    <Text style={styles.biasLabel}>R</Text>
                   </View>
-                  <Text style={styles.biasLabel}>R</Text>
+                </View>
+                <TouchableOpacity
+                  style={[styles.mainCard, { shadowColor: "#ccc", shadowOpacity: 1, shadowRadius: 6, shadowOffset: { width: 4, height: 4 } }]}
+                  onPress={handleOpenPress}
+                >
+                  <Text style={styles.mainCardContent}>Context Summary</Text>
+                  <Text style={{ fontSize: 16, marginTop: 5 }}>{item.contextSummary}</Text>
+                </TouchableOpacity>
+
+                <View style={styles.subcardsContainer}>
+                  <View style={styles.subCard}>
+                    <Text style={[styles.mainCardContent, { fontSize: 16 }]}>Logical Fallacies</Text>
+                    {item.fallacies.length > 0 ? (
+                      <Text style={{ fontSize: 16, marginTop: 5 }}>{item.fallacies.join("\n")}</Text>
+                    ) : <Text>None</Text>}
+                  </View>
+                  <View style={styles.subCard}>
+                    <Text style={[styles.mainCardContent, { fontSize: 17 }]}>Misinformation Flags</Text>
+                    {item.misinformation.length > 0 ? (
+                      <Text style={{ fontSize: 16, marginTop: 5 }}>{item.misinformation.join("\n")}</Text>
+                    ) : <Text>None</Text>}
+                  </View>
                 </View>
               </View>
-              <TouchableOpacity 
-                style={[styles.mainCard, {shadowColor: "#ccc", shadowOpacity: 1, shadowRadius: 6, shadowOffset: { width: 4, height: 4 }}]}
-                onPress={handleOpenPress}
-              >
-                <Text style={styles.mainCardContent}>Context Summary</Text>
-                <Text style={{
-                  fontSize: 16,
-                  marginTop: 5,
-                }}>{item.contextSummary}</Text>
-              </TouchableOpacity>
-              <View style={styles.subcardsContainer}>
-          <View style={styles.subCard}>
-            <Text style={[styles.mainCardContent, {fontSize: 16}]}>Logical Fallacies</Text>
-            {item.fallacies.length > 0 ? (
-              <Text style={{
-                fontSize: 16,
-                marginTop: 5,
-              }}>{item.fallacies.join("\n")}</Text>
-            ) : (
-              <Text>None</Text>
-            )}
+            ))}
           </View>
-          <View style={styles.subCard}>
-            <Text style={[styles.mainCardContent, {fontSize: 17}]}>Misinformation Flags</Text>
-            {item.misinformation.length > 0 ? (
-              <Text style={{
-                fontSize: 16,
-                marginTop: 5,
-              }}>{item.misinformation.join("\n")}</Text>
-            ) : (
-              <Text>None</Text>
-            )}
-          </View>
-        </View>
-            </View>
-          ))}
-        </View>
-      )}
-    </ScrollView>
-    <BottomSheet
+        )}
+      </ScrollView>
+      <BottomSheet
         ref={bottomSheetRef}
         index={-1}
         snapPoints={snapPoints}
         enablePanDownToClose={true}
-        backgroundStyle={{ backgroundColor: '#f0f0f0' }}           // make it visible
+        backgroundStyle={{ backgroundColor: '#f0f0f0' }}
         handleIndicatorStyle={{ backgroundColor: '#888', width: 40 }}
       >
         <BottomSheetView style={styles.bottomSheetContent}>
           <Text style={styles.subheadingBold}>Context Summary</Text>
           <ScrollView showsVerticalScrollIndicator={false}>
-            <Text style={{
-              fontSize: 16,
-              marginTop: 5,
-            }}>{endpointData}</Text>
+            <Text style={{ fontSize: 16, marginTop: 5 }}>{endpointData}</Text>
           </ScrollView>
         </BottomSheetView>
       </BottomSheet>

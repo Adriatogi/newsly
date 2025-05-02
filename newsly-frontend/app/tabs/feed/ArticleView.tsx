@@ -209,31 +209,3 @@ const styles = (dark: boolean, expanded: boolean) =>
       color: dark ? '#152B3F' : '#fff',
     },
   });
-
-    highlights: { gap: 10, marginTop: 10 },
-    blue: {
-      backgroundColor: 'rgba(59,130,246,0.15)', padding: 10,
-      borderRadius: 6, fontSize: 14, color: dark ? '#fff' : '#152B3F'
-    },
-    red: {
-      backgroundColor: 'rgba(239,68,68,0.15)', padding: 10,
-      borderRadius: 6, fontSize: 14, color: dark ? '#fff' : '#152B3F'
-    },
-    footerBar: {
-      position: 'absolute',
-      bottom: 0,
-      left: 0,
-      right: 0,
-      backgroundColor: dark ? '#FFFFF4' : '#152B3F',
-      paddingVertical: 8,
-      borderTopWidth: 0.5,
-      borderTopColor: dark ? '#444' : '#ccc',
-      alignItems: 'center',
-      borderBottomLeftRadius: 16,
-      borderBottomRightRadius: 16,
-    },
-    footerText: {
-      fontSize: 12,
-      color: dark ? '#152B3F' : '#fff',
-    },
-  });
