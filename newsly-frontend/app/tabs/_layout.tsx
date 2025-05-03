@@ -6,10 +6,10 @@ export default function tabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: "white",
+        tabBarActiveTintColor: "#152B3F",
         tabBarInactiveTintColor: "grey",
         tabBarStyle: {
-          backgroundColor: "#152B3F",
+          backgroundColor: "white",
         },
       }}
     >
@@ -31,7 +31,7 @@ export default function tabsLayout() {
           tabBarIcon: ({ color }) => (
             <FontAwesome name="search-plus" size={24} color={color} />
           ),
-        }}
+        }} 
       />
     </Tabs>
   );

@@ -5,8 +5,10 @@ click
 newspaper4k
 python-dotenv
 lxml_html_clean
-
 modal
 
-# transformers
-# torch
+# Commenting these out because we don't need for deployment, but we might need for local testing
+# transformers==4.38.2
+# torch==2.2.1
+# sagemaker
+# boto3
