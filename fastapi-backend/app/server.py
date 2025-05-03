@@ -2,7 +2,7 @@ from newspaper import Article
 import modal
 import asyncio
 
-from app.ml import llm_summarize, political_bias
+from app.ml_newsly import llm_summarize, political_bias
 from app.utils import normalize_url, parse_article
 from app.db import get_article_by_url, increment_article_read_count, add_article_to_db
 

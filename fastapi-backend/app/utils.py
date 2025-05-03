@@ -1,6 +1,5 @@
 from newspaper import Article
 import modal
-import asyncio
 from datetime import datetime
 from urllib.parse import urlparse, urlunparse
 from dataclasses import dataclass
@@ -8,8 +7,6 @@ import json
 import re
 import os
 
-from app.ml import llm_summarize, political_bias
-from app.db import add_article_to_db, get_article_by_url, increment_article_read_count
 
 modal_summarize = modal.Function.from_name("newsly-modal-test", "summarize")
 modal_political_bias = modal.Function.from_name("newsly-modal-test", "political_bias")
