@@ -1,4 +1,4 @@
-from app.ml import llm_summarize, political_bias, extract_topics
+from app.ml import llm_summarize, political_bias, extract_topics, contextualize_article
 from app.utils import normalize_url, parse_article
 from app.db import get_article_by_url, increment_article_read_count, add_article_to_db
 from newspaper import Article
@@ -13,11 +13,13 @@ async def analyze_article(article: Article):
     summary = await llm_summarize(article.text)
     bias = await political_bias(article.text)
     topics = await extract_topics(article.text)
+    contextualization = await contextualize_article(article.text, topics)
 
     return {
         "summary": summary,
         "bias": bias,
         "topics": topics,
+        "contextualization": contextualization
     }
 
 

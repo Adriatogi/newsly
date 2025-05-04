@@ -156,7 +156,7 @@ async def extract_topics(text: str) -> list[str]:
         """
         
         messages = [
-            {"role": "system", "content": "You are a helpful, unbiased expert that extracts political and cultural topics from news article text."},
+            {"role": "system", "content": "You are a helpful, unbiased expert that extracts political, historical, and cultural topics from news article text."},
             {"role": "user", "content": prompt}
         ]
         
@@ -169,3 +169,55 @@ async def extract_topics(text: str) -> list[str]:
         
         topics = [topic.strip() for topic in response.split(',')]
         return topics
+
+async def contextualize_article(text: str, topics: list[str]) -> dict:
+    if utils.TEST:
+        print("Test active contextualization")
+        return {
+            "topics": topics,
+            "contextualization": "Test active contextualization of the article's broader context."
+        }
+    
+    if device == 'cuda':
+        context_pipe = pipeline("text2text-generation", model="google/flan-t5-large", device=0)
+        prompt = (
+            "You are an expert in modern and historical political discourse.\n\n"
+            f"Article excerpt:\n{text}\n\n"
+            f"Key topics: {', '.join(topics)}\n\n"
+            "Please return a JSON object with fields 'topics' and 'contextualization', where 'contextualization' is 1-2 concise paragraphs."
+        )
+        contextualization = context_pipe(prompt, max_length=1024, do_sample=False)
+        return contextualization[0].get("generated_text", contextualization[0].get("text", ""))
+
+    else:
+        prompt = f"""
+        You are an expert analyst of political, cultural, and historical discourse.
+
+        Article excerpt:
+        {text}
+
+        Key extracted topics:
+        {', '.join(topics)}
+
+        Please provide a nuanced discussion (1-2 concise paragraphs) of the historical,
+        cultural, and political context that informs these topics as they appear
+        in the article. Return a JSON object with the fields:
+
+        {{
+        "topics": [...],               // the same list you passed in
+        "contextualization": "..."     // your multi‑paragraph analysis
+        }}
+        """
+
+        messages = [
+            {"role": "system", "content": "You are a knowledgeable, unbiased expert providing contextual analysis."},
+            {"role": "user",   "content": prompt}
+        ]
+        contextualization = generate_together(
+            model="meta-llama/Llama-3.3-70B-Instruct-Turbo",
+            messages=messages,
+            max_tokens=1024,
+            temperature=0.7,
+        )
+
+        return contextualization
