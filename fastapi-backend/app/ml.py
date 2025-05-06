@@ -169,6 +169,23 @@ async def extract_topics(text: str) -> list[str]:
         
         topics = [topic.strip() for topic in response.split(',')]
         return topics
+    
+async def get_topic_background(topic: str) -> str:
+    """
+    Helper for getting topic backgrounds for informed contextualizations. 
+    """
+    prompt = f"Provide a concise, unbiased explanation or historical context for the topic: '{topic}'."
+    messages = [
+        {"role": "system", "content": "You are a knowledgeable assistant providing background information."},
+        {"role": "user", "content": prompt}
+    ]
+    background = generate_together(
+        model="meta-llama/Llama-3.3-70B-Instruct-Turbo",
+        messages=messages,
+        max_tokens=128,
+        temperature=0.3,
+    )
+    return background.strip()
 
 async def contextualize_article(text: str, topics: list[str]) -> dict:
     if utils.TEST:
@@ -184,7 +201,7 @@ async def contextualize_article(text: str, topics: list[str]) -> dict:
             "You are an expert in modern and historical political discourse.\n\n"
             f"Article excerpt:\n{text}\n\n"
             f"Key topics: {', '.join(topics)}\n\n"
-            "Please return a JSON object with fields 'topics' and 'contextualization', where 'contextualization' is 1-2 concise paragraphs."
+            "Please return a JSON object with fields 'topics' and 'contextualization', where 'contextualization' is 1-2 concise paragraphs relating the topics to the article."
         )
         contextualization = context_pipe(prompt, max_length=1024, do_sample=False)
         return contextualization[0].get("generated_text", contextualization[0].get("text", ""))
@@ -201,11 +218,12 @@ async def contextualize_article(text: str, topics: list[str]) -> dict:
 
         Please provide a nuanced discussion (1-2 concise paragraphs) of the historical,
         cultural, and political context that informs these topics as they appear
-        in the article. Return a JSON object with the fields:
-
+        in the article. The topics are related to the article and must be referenced. The relevance of topics
+        to the articlemust be mentioned in the contextualization.
+        Return a JSON object with the fields:
         {{
-        "topics": [...],               // the same list you passed in
-        "contextualization": "..."     // your multi‑paragraph analysis
+        "topics": [...],               
+        "contextualization": "..."     
         }}
         """
 
