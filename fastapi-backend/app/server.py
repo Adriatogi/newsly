@@ -1,8 +1,14 @@
-from app.ml import llm_summarize, political_bias, extract_topics, contextualize_article
+from newspaper import Article
+import modal
+import asyncio
+
+from app.ml_newsly import llm_summarize, political_bias, extract_topics, contextualize_article
 from app.utils import normalize_url, parse_article
 from app.db import get_article_by_url, increment_article_read_count, add_article_to_db
-from newspaper import Article
-import app.utils as utils
+
+modal_summarize = modal.Function.from_name("newsly-modal-test", "summarize")
+modal_political_bias = modal.Function.from_name("newsly-modal-test", "political_bias")
+
 
 async def analyze_article(article: Article):
     """
@@ -10,8 +16,10 @@ async def analyze_article(article: Article):
     """
 
     print("Analyzing article")
-    summary = await llm_summarize(article.text)
-    bias = await political_bias(article.text)
+    summary = modal_summarize.remote.aio(article.text)
+    bias = modal_political_bias.remote.aio(article.text)
+    summary, bias = await asyncio.gather(summary, bias)
+
     topics = await extract_topics(article.text)
     contextualization = await contextualize_article(article.text, topics)
 
