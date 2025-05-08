@@ -11,7 +11,11 @@ async def process_article_wrapper(url, cache=True):
 
 
 async def analyze_article_wrapper(url):
-    return await analyze_article(url)
+    article = parse_article(url)        
+    if not article:
+        raise click.ClickException("Failed to fetch or parse the URL")
+    return await analyze_article(article)
+    # return await analyze_article(url)
 
 
 @click.group()
@@ -38,7 +42,7 @@ def process_article(url, json_output, test, no_cache):
     result = asyncio.run(process_article_wrapper(url, cache=not no_cache))
 
     if json_output:
-        click.echo(json.dumps(result.to_dict(), indent=2))
+        click.echo(json.dumps(result, indent=2))
     else:
         for key, value in result.items():
             click.echo(f"{key}: {value}")
@@ -53,7 +57,7 @@ def parse(url, json_output):
     result = asyncio.run(parse_article(url))
 
     if json_output:
-        click.echo(json.dumps(result.to_dict(), indent=2))
+        click.echo(json.dumps(result, indent=2))
 
 
 @cli.command()
@@ -69,7 +73,7 @@ def analyze(url, json_output, test):
     result = asyncio.run(analyze_article_wrapper(url))
 
     if json_output:
-        click.echo(json.dumps(result.to_dict(), indent=2))
+        click.echo(json.dumps(result, indent=2))
 
 
 if __name__ == "__main__":

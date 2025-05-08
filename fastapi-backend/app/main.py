@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from app.newsly_types import ArticleAnalysisRequest
-from app.server import process_article_db
+from app.server import process_article_db, analyze_article
 import app.utils as utils
 import uvicorn
 import argparse
@@ -22,7 +22,6 @@ def read_root():
 @app.post("/articles/analyze")
 async def analyze_article(article_analysis_request: ArticleAnalysisRequest):
     return await process_article_db(article_analysis_request.url)
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run the FastAPI server")

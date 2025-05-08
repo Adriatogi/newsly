@@ -126,3 +126,116 @@ async def llm_summarize(text: str, max_length: int = 130, min_length: int = 40) 
         
         # Extract the summary from the response
         return summary
+
+async def extract_topics(text: str) -> list[str]:
+    topics = []
+
+    if utils.TEST:
+        print("Test active topic scrapping")
+        return ["topic_1", "topic_2"]
+
+    if device == 'cuda':
+        ner_pipeline = pipeline("ner", model="dslim/bert-base-NER", device=0)
+        entities = ner_pipeline(text)
+        
+        possible_topics = set()
+        for entity in entities:
+            if entity['score'] > 0.85 and entity['word'] not in topics:
+                topics.add(entity['word'])
+        
+        topics = list(possible_topics)
+        return topics
+    else:
+        prompt = f"""
+            Extract the key political, historical, and cultural topics related to the following text.
+            Return only the topics as a comma-separated list.
+            
+            Text: {text}
+            
+            Topics:
+        """
+        
+        messages = [
+            {"role": "system", "content": "You are a helpful, unbiased expert that extracts political, historical, and cultural topics from news article text."},
+            {"role": "user", "content": prompt}
+        ]
+        
+        response = generate_together(
+            model="meta-llama/Llama-3.3-70B-Instruct-Turbo",
+            messages=messages,
+            max_tokens=256,
+            temperature=0.3,
+        )
+        
+        topics = [topic.strip() for topic in response.split(',')]
+        return topics
+    
+async def get_topic_background(topic: str) -> str:
+    """
+    Helper for getting topic backgrounds for informed contextualizations. 
+    """
+    prompt = f"Provide a concise, unbiased explanation or historical context for the topic: '{topic}'."
+    messages = [
+        {"role": "system", "content": "You are a knowledgeable assistant providing background information."},
+        {"role": "user", "content": prompt}
+    ]
+    background = generate_together(
+        model="meta-llama/Llama-3.3-70B-Instruct-Turbo",
+        messages=messages,
+        max_tokens=128,
+        temperature=0.3,
+    )
+    return background.strip()
+
+async def contextualize_article(text: str, topics: list[str]) -> dict:
+    if utils.TEST:
+        print("Test active contextualization")
+        return {
+            "topics": topics,
+            "contextualization": "Test active contextualization of the article's broader context."
+        }
+    
+    if device == 'cuda':
+        context_pipe = pipeline("text2text-generation", model="google/flan-t5-large", device=0)
+        prompt = (
+            "You are an expert in modern and historical political discourse.\n\n"
+            f"Article excerpt:\n{text}\n\n"
+            f"Key topics: {', '.join(topics)}\n\n"
+            "Please return a JSON object with fields 'topics' and 'contextualization', where 'contextualization' is 1-2 concise paragraphs relating the topics to the article."
+        )
+        contextualization = context_pipe(prompt, max_length=1024, do_sample=False)
+        return contextualization[0].get("generated_text", contextualization[0].get("text", ""))
+
+    else:
+        prompt = f"""
+        You are an expert analyst of political, cultural, and historical discourse.
+
+        Article excerpt:
+        {text}
+
+        Key extracted topics:
+        {', '.join(topics)}
+
+        Please provide a nuanced discussion (1-2 concise paragraphs) of the historical,
+        cultural, and political context that informs these topics as they appear
+        in the article. The topics are related to the article and must be referenced. The relevance of topics
+        to the articlemust be mentioned in the contextualization.
+        Return a JSON object with the fields:
+        {{
+        "topics": [...],               
+        "contextualization": "..."     
+        }}
+        """
+
+        messages = [
+            {"role": "system", "content": "You are a knowledgeable, unbiased expert providing contextual analysis."},
+            {"role": "user",   "content": prompt}
+        ]
+        contextualization = generate_together(
+            model="meta-llama/Llama-3.3-70B-Instruct-Turbo",
+            messages=messages,
+            max_tokens=1024,
+            temperature=0.7,
+        )
+
+        return contextualization
