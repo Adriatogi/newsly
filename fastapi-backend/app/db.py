@@ -72,6 +72,9 @@ def add_article_to_db(article: NewslyArticle) -> NewslyArticle | None:
         dict: The article data that got stored in the database.
     """
     parsed_article = dataclasses.asdict(article)
+    if not parsed_article.get("id"):
+        del parsed_article["created_at"]
+        del parsed_article["id"]
 
     # Add article to the database
     if not utils.TEST:
