@@ -91,6 +91,6 @@ async def process_article_db(url: str, cache=True) -> NewslyArticle:
         # Add article to the database
         if cache:
             print("Caching article to db")
-            article = add_article_to_db(url, article)
+            article = add_article_to_db(article)
 
     return article

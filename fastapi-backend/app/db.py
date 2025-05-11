@@ -63,7 +63,7 @@ def increment_article_read_count(article_id: str, previous_read_count: int = 0):
     return response.data
 
 
-def add_article_to_db(cleaned_url: str, article: NewslyArticle) -> NewslyArticle | None:
+def add_article_to_db(article: NewslyArticle) -> NewslyArticle | None:
     """
     Add an article to the database.
     Args:
