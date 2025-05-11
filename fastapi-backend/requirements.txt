@@ -2,7 +2,7 @@ fastapi[standard]
 fastapi-cli
 supabase
 click
-newspaper3k
+newspaper4k
 python-dotenv
 lxml_html_clean
 modal
