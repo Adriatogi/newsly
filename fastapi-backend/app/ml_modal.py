@@ -1,13 +1,10 @@
 import modal
 
-# CUDA image settings
-# I don't think we necessarily NEED to use a CUDA image, but it could be helpful for more complex models
-cuda_version = "12.4.0"  # should be no greater than host CUDA version
-flavor = "devel"  # includes full CUDA toolkit
-operating_sys = "ubuntu22.04"
-tag = f"{cuda_version}-{flavor}-{operating_sys}"
+# settings for timeout
+IDLE_TIMEOUT = 60  # seconds
 
 # Setup image and app
+tag = "12.4.0-devel-ubuntu22.04"
 image = (
     modal.Image.from_registry(f"nvidia/cuda:{tag}", add_python="3.10")
     # modal.Image.debian_slim(python_version="3.10") # use this if we don't need CUDA
@@ -26,7 +23,7 @@ hf_cache_vol = modal.Volume.from_name("huggingface-cache", create_if_missing=Tru
     gpu="L4",
     image=image,
     volumes={"/root/.cache/huggingface": hf_cache_vol},
-    scaledown_window=60,  # idle timeout to 60 secs
+    scaledown_window=IDLE_TIMEOUT,
 )
 def summarize(text: str) -> str:
     print("starting summarization")
@@ -60,7 +57,7 @@ def summarize(text: str) -> str:
     gpu="L4",
     image=image,
     volumes={"/root/.cache/huggingface": hf_cache_vol},
-    scaledown_window=60,  # idle timeout to 60 secs
+    scaledown_window=IDLE_TIMEOUT,
 )
 async def political_bias(text: str) -> dict:
     from transformers import AutoTokenizer, AutoModelForSequenceClassification
@@ -96,3 +93,55 @@ async def political_bias(text: str) -> dict:
     }
     print("data:", data)
     return data
+
+
+@app.function(
+    gpu="L4",
+    image=image,
+    volumes={"/root/.cache/huggingface": hf_cache_vol},
+    scaledown_window=IDLE_TIMEOUT,
+)
+async def extract_topics(text: str) -> list[str]:
+    from transformers import pipeline, AutoTokenizer, AutoModelForTokenClassification
+
+    topics = []
+
+    tokenizer = AutoTokenizer.from_pretrained("dslim/bert-base-NER")
+    model = AutoModelForTokenClassification.from_pretrained("dslim/bert-base-NER")
+
+    ner_pipeline = pipeline("ner", model=model, tokenizer=tokenizer)
+    entities = ner_pipeline(text)
+
+    # Filter out entities with low confidence scores
+    # TODO: include confidence score in output to make it more transparent?
+    possible_topics = set()
+    for entity in entities:
+        if entity["score"] > 0.85 and entity["word"] not in possible_topics:
+            possible_topics.add(entity["word"])
+
+    topics = list(possible_topics)
+    return topics
+
+
+@app.function(
+    gpu="L4",
+    image=image,
+    volumes={"/root/.cache/huggingface": hf_cache_vol},
+    scaledown_window=IDLE_TIMEOUT,
+)
+async def contextualize_article(text: str, topics: list[str]) -> dict:
+    from transformers import pipeline
+
+    context_pipe = pipeline(
+        "text2text-generation", model="google/flan-t5-large", device=0
+    )
+    prompt = (
+        "You are an expert in modern and historical political discourse.\n\n"
+        f"Article excerpt:\n{text}\n\n"
+        f"Key topics: {', '.join(topics)}\n\n"
+        "Please return a JSON object with fields 'topics' and 'contextualization', where 'contextualization' is 1-2 concise paragraphs relating the topics to the article."
+    )
+    contextualization = context_pipe(prompt, max_length=1024, do_sample=False)
+    return contextualization[0].get(
+        "generated_text", contextualization[0].get("text", "")
+    )

@@ -2,7 +2,7 @@ from newspaper import Article
 import modal
 from datetime import datetime
 from urllib.parse import urlparse, urlunparse
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import json
 import re
 import os
@@ -15,26 +15,33 @@ TEST = int(os.environ.get("TEST", "0"))
 
 
 # TODO: move this dataclass to a different file
+# This is the dataclass for an article stored in the database
+# NOTE: This NEEDS to be in sync with the database schema. It should have the same fields
 @dataclass
 class NewslyArticle:
+    url: str
+    title: str
     text: str
     authors: list[str]
-    publish_date: datetime
-    top_image: str
-    movies: list[str]
-    summary: str
-    bias: str
+    image_url: str
+    published_date: datetime
+    last_analyzed_at: datetime
+    source_url: str
+    read_count: int = 1  # start with 1 for new articles
+    keywords: list[str] = field(default_factory=list)
+    images: list[str] = field(default_factory=list)  # images found in the article
+    movies: list[str] = field(default_factory=list)  # videos found in the article
 
-    def to_dict(self):
-        return {
-            "text": self.text,
-            "authors": self.authors,
-            "publish_date": self.publish_date,
-            "top_image": self.top_image,
-            "movies": self.movies,
-            "summary": self.summary,
-            "bias": self.bias,
-        }
+    # fields from analysis
+    summary: str = ""
+    bias: str = ""
+    topics: list[str] = field(default_factory=list)
+    contextualization: str = ""
+
+    # fields for the database
+    # These fields are set by the database and should not be set manually
+    id: str = None
+    created_at: datetime = None
 
 
 def normalize_url(url: str) -> str:
@@ -85,7 +92,7 @@ def extract_json(text: str):
         return {"answer": f"Failed to parse response as JSON. Original text: {text}"}
 
 
-def parse_article(url: str):
+def parse_article(url: str) -> NewslyArticle:
     """
     Parse an article from the given URL.
 
@@ -106,17 +113,22 @@ def parse_article(url: str):
     article = Article(url)
     article.download()
     article.parse()
+    article.nlp()
 
     # str readable date
     date = article.publish_date
     date = date.isoformat()
 
     return NewslyArticle(
+        url=url,
+        title=article.title,
         text=article.text,
         authors=article.authors,
-        publish_date=date,
-        top_image=article.top_image,
-        movies=article.movies,
-        summary="",
-        bias="",
+        image_url=article.top_image,
+        published_date=date,
+        last_analyzed_at=datetime.now(),
+        source_url=url,
+        keywords=article.keywords or [],
+        images=article.images or [],
+        movies=article.movies or [],
     )
