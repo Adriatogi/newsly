@@ -19,6 +19,7 @@
     "@gorhom/bottom-sheet": "^4.4.6",
     "@react-navigation/bottom-tabs": "~6.5.17",
     "@react-navigation/native": "~6.1.11",
+    "@supabase/supabase-js": "^2.49.5-next.1",
     "expo": "~53.0.5",
     "expo-blur": "~14.1.4",
     "expo-constants": "~17.1.5",
