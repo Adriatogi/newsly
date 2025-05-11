@@ -102,17 +102,22 @@ async def political_bias(text: str) -> dict:
     scaledown_window=IDLE_TIMEOUT,
 )
 async def extract_topics(text: str) -> list[str]:
-    from transformers import pipeline
+    from transformers import pipeline, AutoTokenizer, AutoModelForTokenClassification
 
     topics = []
 
-    ner_pipeline = pipeline("ner", model="dslim/bert-base-NER", device=0)
+    tokenizer = AutoTokenizer.from_pretrained("dslim/bert-base-NER")
+    model = AutoModelForTokenClassification.from_pretrained("dslim/bert-base-NER")
+
+    ner_pipeline = pipeline("ner", model=model, tokenizer=tokenizer)
     entities = ner_pipeline(text)
 
+    # Filter out entities with low confidence scores
+    # TODO: include confidence score in output to make it more transparent?
     possible_topics = set()
     for entity in entities:
-        if entity["score"] > 0.85 and entity["word"] not in topics:
-            topics.add(entity["word"])
+        if entity["score"] > 0.85 and entity["word"] not in possible_topics:
+            possible_topics.add(entity["word"])
 
     topics = list(possible_topics)
     return topics
