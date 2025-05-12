@@ -3,7 +3,7 @@ import dataclasses
 import os
 from supabase import create_client, Client
 from datetime import datetime
-from app.utils import NewslyArticle
+from app.newsly_types import NewslyArticle
 
 import app.utils as utils
 
