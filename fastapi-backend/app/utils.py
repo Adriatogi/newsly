@@ -6,43 +6,12 @@ from dataclasses import dataclass, field
 import json
 import re
 import os
-
-
+from pydantic import BaseModel, ValidationError
+from app.newsly_types import NewslyArticle
 modal_summarize = modal.Function.from_name("newsly-modal-test", "summarize")
 modal_political_bias = modal.Function.from_name("newsly-modal-test", "political_bias")
 
 TEST = int(os.environ.get("TEST", "0"))
-
-
-# TODO: move this dataclass to a different file
-# This is the dataclass for an article stored in the database
-# NOTE: This NEEDS to be in sync with the database schema. It should have the same fields
-@dataclass
-class NewslyArticle:
-    url: str
-    title: str
-    text: str
-    authors: list[str]
-    image_url: str
-    published_date: datetime
-    last_analyzed_at: datetime
-    source_url: str
-    read_count: int = 1  # start with 1 for new articles
-    keywords: list[str] = field(default_factory=list)
-    images: list[str] = field(default_factory=list)  # images found in the article
-    movies: list[str] = field(default_factory=list)  # videos found in the article
-
-    # fields from analysis
-    summary: str = ""
-    bias: str = ""
-    topics: list[str] = field(default_factory=list)
-    contextualization: str = ""
-
-    # fields for the database
-    # These fields are set by the database and should not be set manually
-    id: str = None
-    created_at: datetime = None
-
 
 def normalize_url(url: str) -> str:
     """
@@ -89,7 +58,7 @@ def extract_json(text: str):
             pass
 
         # If all parsing attempts fail
-        return {"answer": f"Failed to parse response as JSON. Original text: {text}"}
+        return None
 
 
 def parse_article(url: str) -> NewslyArticle:

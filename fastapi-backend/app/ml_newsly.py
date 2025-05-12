@@ -1,16 +1,19 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, ValidationError
+from app.newsly_types import LogicalFallacy, LogicalFallacies, LogicalFallaciesResponse
 from app.clients import generate_together
 from app.utils import extract_json
+import app.prompts as prompts
 
 import app.utils as utils
+import asyncio
 
 class ArticleAnalysisRequest(BaseModel):
     url: str
 
 try:
-    from transformers import AutoTokenizer, AutoModelForSequenceClassification, pipeline
     import torch
     if torch.cuda.is_available():
+        from transformers import AutoTokenizer, AutoModelForSequenceClassification, pipeline
         device = torch.device('cuda')
         print("Using GPU")
     else:
@@ -239,3 +242,170 @@ async def contextualize_article(text: str, topics: list[str]) -> dict:
         )
 
         return contextualization
+
+async def get_logical_fallacies(text: str, sequential: bool = False) -> dict:
+    if sequential:
+        ad_hominem = await get_ad_hominem(text)
+        discrediting_sources = await get_discrediting_sources(text)
+        emotion_fallacy = await get_emotion_fallacy(text)
+        false_dichotomy = await get_false_dichotomy(text)
+        fear_mongering = await get_fear_mongering(text)
+        good_sources = await get_good_sources(text)
+        non_sequitur = await get_non_sequitur(text)
+        presenting_other_side = await get_presenting_other_side(text)
+        scapegoating = await get_scapegoating(text)
+    else:
+        (
+            ad_hominem,
+            discrediting_sources,
+            emotion_fallacy,
+            false_dichotomy,
+            fear_mongering,
+            good_sources,
+            non_sequitur,
+            presenting_other_side,
+            scapegoating,
+        ) = await asyncio.gather(
+            get_ad_hominem(text),
+            get_discrediting_sources(text),
+            get_emotion_fallacy(text),
+            get_false_dichotomy(text),
+            get_fear_mongering(text),
+            get_good_sources(text),
+            get_non_sequitur(text),
+            get_presenting_other_side(text),
+            get_scapegoating(text),
+        )
+
+    return {
+        "ad_hominem": ad_hominem,
+        "discrediting_sources": discrediting_sources,
+        "emotion_fallacy": emotion_fallacy,
+        "false_dichotomy": false_dichotomy,
+        "fear_mongering": fear_mongering,
+        "good_sources": good_sources,
+        "non_sequitur": non_sequitur,
+        "presenting_other_side": presenting_other_side,
+        "scapegoating": scapegoating,
+    }
+
+async def get_logical_fallacy_response(
+    prompt: str,
+    system_message: str,
+    test_reason: str = None
+) -> LogicalFallaciesResponse:
+    """
+    Helper to call the LLM, handle errors, and return a LogicalFallacyResponse.
+    If utils.TEST is True and test_reason is provided, returns a test LogicalFallacyResponse.
+    """
+    if utils.TEST and test_reason:
+        print(f"Test active {test_reason}")
+        return LogicalFallaciesResponse(
+            logical_fallacies=[
+                LogicalFallacy(
+                    reason=f"Test active {test_reason}",
+                    quote=f"Test active {test_reason}",
+                    rating=1,
+                    explanation=f"Test active {test_reason}",
+                )
+            ],
+            error=None
+        )
+    else:
+        print("test not active")
+
+    error = None
+    json_response = None
+    try:
+        messages = [
+            {"role": "system", "content": system_message},
+            {"role": "user", "content": prompt}
+        ]
+        response = generate_together(
+            model="meta-llama/Llama-3.3-70B-Instruct-Turbo",
+            messages=messages,
+            max_tokens=1024,
+            temperature=0.7,
+            response_format=LogicalFallaciesResponse
+        )
+        json_response = LogicalFallaciesResponse.model_validate_json(response)
+    except Exception as e:
+        print(e)
+        error = e
+
+    return LogicalFallacies(
+        logical_fallacies=json_response,
+        error=error
+    )
+
+async def get_ad_hominem(text: str) -> LogicalFallacies:
+    prompt = prompts.ad_hominem.format(text=text)
+    return await get_logical_fallacy_response(
+        prompt,
+        "You are a helpful assistant that identifies ad hominem attacks in text.",
+        test_reason="ad hominem"
+    )
+
+async def get_discrediting_sources(text: str) -> LogicalFallacies:
+    prompt = prompts.discrediting_sources.format(text=text)
+    return await get_logical_fallacy_response(
+        prompt,
+        "You are a helpful assistant that identifies discrediting sources in text.",
+        test_reason="discrediting sources"
+    )
+
+async def get_emotion_fallacy(text: str) -> LogicalFallacies:
+    prompt = prompts.emotion_fallacy.format(text=text)
+    return await get_logical_fallacy_response(
+        prompt,
+        "You are a helpful assistant that identifies emotion fallacy in text.",
+        test_reason="emotion fallacy"
+    )
+
+async def get_false_dichotomy(text: str) -> LogicalFallacies:
+    prompt = prompts.false_dichotomy_fallacy.format(text=text)
+    return await get_logical_fallacy_response(
+        prompt,
+        "You are a helpful assistant that identifies false dichotomies in text.",
+        test_reason="false dichotomy"
+    )
+
+async def get_fear_mongering(text: str) -> LogicalFallacies:
+    prompt = prompts.fear_mongering_fallacy.format(text=text)
+    return await get_logical_fallacy_response(
+        prompt,
+        "You are a helpful assistant that identifies fear mongering in text.",
+        test_reason="fear mongering"
+    )
+
+async def get_good_sources(text: str) -> LogicalFallacies:
+    prompt = prompts.good_sources.format(text=text)
+    return await get_logical_fallacy_response(
+        prompt,
+        "You are a helpful assistant that identifies good sources in text.",
+        test_reason="good sources"
+    )
+
+async def get_non_sequitur(text: str) -> LogicalFallacies:
+    prompt = prompts.non_sequitur.format(text=text)
+    return await get_logical_fallacy_response(
+        prompt,
+        "You are a helpful assistant that identifies non-sequiturs in text.",
+        test_reason="non-sequitur"
+    )
+
+async def get_presenting_other_side(text: str) -> LogicalFallacies:
+    prompt = prompts.presenting_other_side.format(text=text)
+    return await get_logical_fallacy_response(
+        prompt,
+        "You are a helpful assistant that identifies presenting the other side in text.",
+        test_reason="presenting the other side"
+    )
+
+async def get_scapegoating(text: str) -> LogicalFallacies:
+    prompt = prompts.scapegoating.format(text=text)
+    return await get_logical_fallacy_response(
+        prompt,
+        "You are a helpful assistant that identifies scapegoating in text.",
+        test_reason="scapegoating"
+    )

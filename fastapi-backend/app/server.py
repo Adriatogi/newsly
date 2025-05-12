@@ -7,6 +7,7 @@ from app.ml_newsly import (
     political_bias,
     extract_topics,
     contextualize_article,
+    get_logical_fallacies,
 )
 from app.utils import normalize_url, parse_article, NewslyArticle
 from app.db import (
@@ -24,16 +25,22 @@ modal_contextualize_article = modal.Function.from_name(
 )
 
 
-async def analyze_article(article: NewslyArticle) -> None:
+async def analyze_article(article: NewslyArticle, no_modal: bool = False) -> None:
     """
     Analyze an article. It will set the properties of the article to the result of the analysis.
     """
 
     print("Analyzing article")
-    summary = modal_summarize.remote.aio(article.text)
-    bias = modal_political_bias.remote.aio(article.text)
-    topics = modal_extract_topics.remote.aio(article.text)
-    summary, bias, topics = await asyncio.gather(summary, bias, topics)
+    if no_modal:
+        summary = llm_summarize(article.text)
+        bias = political_bias(article.text)
+        topics = extract_topics(article.text)
+        logical_fallacies = get_logical_fallacies(article.text)
+    else:
+        summary = modal_summarize.remote.aio(article.text)
+        bias = modal_political_bias.remote.aio(article.text)
+        topics = modal_extract_topics.remote.aio(article.text)
+        summary, bias, topics = await asyncio.gather(summary, bias, topics)
 
     # contextualizing depends on `topics` so we need to wait for it. Can't run async with other functions
     contextualization = modal_contextualize_article.remote(
@@ -45,7 +52,7 @@ async def analyze_article(article: NewslyArticle) -> None:
     article.bias = bias
     article.topics = topics
     article.contextualization = contextualization
-
+    article.logical_fallacies = logical_fallacies
 
 async def process_article_db(url: str, cache=True) -> NewslyArticle:
     """
