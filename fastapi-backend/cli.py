@@ -81,7 +81,8 @@ def analyze(url, json_output, test):
 @click.argument("url")
 @click.option("--json-output", is_flag=True, help="Output as JSON")
 @click.option("--test", is_flag=True, help="Run in test mode")
-def get_logical(url, json_output, test):
+@click.option("--sequential", is_flag=True, help="Run sequentially")
+def get_logical(url, json_output, test, sequential):
 
     if test:
         utils.TEST = 1
@@ -93,7 +94,7 @@ def get_logical(url, json_output, test):
         raise click.ClickException("Failed to fetch or parse the URL")
     
     text = article.text
-    result = asyncio.run(get_logical_fallacies(text))
+    result = asyncio.run(get_logical_fallacies(text, sequential=sequential))
 
     if json_output:
         # Convert each LogicalFallacies object to a dict

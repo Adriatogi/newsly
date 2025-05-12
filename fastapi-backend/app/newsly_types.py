@@ -42,7 +42,7 @@ class LogicalFallacy(BaseModel):
     explanation: str = Field(description="The explanation of the fallacy")
 
 class LogicalFallaciesResponse(BaseModel):
-    logical_fallacies: list[LogicalFallacy] | None = Field(description="The logical fallacies in the text")
+    logical_fallacies: list[LogicalFallacy] = Field(description="The logical fallacies in the text")
 
 class LogicalFallacies(BaseModel):
     logical_fallacies: list[LogicalFallacy] = Field(description="The logical fallacies in the text")

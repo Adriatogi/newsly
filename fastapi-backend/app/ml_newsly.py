@@ -326,15 +326,17 @@ async def get_logical_fallacy_response(
             messages=messages,
             max_tokens=1024,
             temperature=0.7,
-            response_format=LogicalFallaciesResponse
+            response_format={"type": "json_object", "schema": LogicalFallaciesResponse.model_json_schema()}
         )
         json_response = LogicalFallaciesResponse.model_validate_json(response)
     except Exception as e:
-        print(e)
+        print("Error getting logical fallacies: ", e)
         error = e
 
+    # get list of logical fallacies from json_response (to avoid double keying)
+    logical_fallacies = json_response.logical_fallacies
     return LogicalFallacies(
-        logical_fallacies=json_response,
+        logical_fallacies=logical_fallacies,
         error=error
     )
 
