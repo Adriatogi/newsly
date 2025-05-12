@@ -7,7 +7,7 @@ import json
 import re
 import os
 from pydantic import BaseModel, ValidationError
-from app.newsly_types import NewslyArticle
+from app.newsly_types import NewslyArticle, LogicalFallacyComplete
 modal_summarize = modal.Function.from_name("newsly-modal-test", "summarize")
 modal_political_bias = modal.Function.from_name("newsly-modal-test", "political_bias")
 

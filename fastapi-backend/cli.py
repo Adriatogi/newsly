@@ -6,6 +6,7 @@ from app.server import process_article_db, analyze_article
 import app.utils as utils
 from app.utils import parse_article
 from app.ml_newsly import get_logical_fallacies
+import dataclasses
 
 async def process_article_wrapper(url, cache=True):
     return await process_article_db(url, cache=cache)
@@ -98,7 +99,7 @@ def get_logical(url, json_output, test, sequential):
 
     if json_output:
         # Convert each LogicalFallacies object to a dict
-        serializable_result = {k: v.model_dump() for k, v in result.items()}
+        serializable_result = dataclasses.asdict(result)
         click.echo(json.dumps(serializable_result, indent=2))
     
 

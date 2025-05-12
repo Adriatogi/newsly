@@ -5,6 +5,42 @@ from datetime import datetime
 class ArticleAnalysisRequest(BaseModel):
     url: str
 
+class LogicalFallacyAPI(BaseModel):
+    reason: str = Field(description="The reason for the fallacy")
+    quote: str = Field(description="The quote that is the fallacy")
+    rating: int = Field(description="The rating of the fallacy")
+    explanation: str = Field(description="The explanation of the fallacy")
+
+# This is what is fed to the API
+class LogicalFallacyListAPI(BaseModel):
+    logical_fallacies: list[LogicalFallacyAPI] = Field(description="The logical fallacies in the text")
+
+# This is the final output to the server (where it is a list of LogicalFallaciesComplete)
+@dataclass
+class LogicalFallacyServer:
+    reason: str
+    quote: str
+    rating: int
+    explanation: str
+
+@dataclass
+class LogicalFallacyServerList:
+    logical_fallacies: list[LogicalFallacyServer] = field(default_factory=list)
+    error: str | None = None
+
+# although this is ugly, i dont expect this list to change throughout the project.
+@dataclass
+class LogicalFallacyComplete:
+    ad_hominem: LogicalFallacyServerList = field(default_factory=LogicalFallacyServerList)
+    discrediting_sources: LogicalFallacyServerList = field(default_factory=LogicalFallacyServerList)
+    emotion_fallacy: LogicalFallacyServerList = field(default_factory=LogicalFallacyServerList)
+    false_dichotomy: LogicalFallacyServerList = field(default_factory=LogicalFallacyServerList)
+    fear_mongering: LogicalFallacyServerList = field(default_factory=LogicalFallacyServerList)
+    good_sources: LogicalFallacyServerList = field(default_factory=LogicalFallacyServerList)
+    non_sequitur: LogicalFallacyServerList = field(default_factory=LogicalFallacyServerList)
+    presenting_other_side: LogicalFallacyServerList = field(default_factory=LogicalFallacyServerList)
+    scapegoating: LogicalFallacyServerList = field(default_factory=LogicalFallacyServerList)
+
 
 # This is the dataclass for an article stored in the database
 # NOTE: This NEEDS to be in sync with the database schema. It should have the same fields
@@ -28,22 +64,10 @@ class NewslyArticle:
     bias: str = ""
     topics: list[str] = field(default_factory=list)
     contextualization: str = ""
+    logical_fallacies: LogicalFallacyComplete = field(default_factory=LogicalFallacyComplete)
 
     # fields for the database
     # These fields are set by the database and should not be set manually
     id: str = None
     created_at: datetime = None
 
-
-class LogicalFallacy(BaseModel):
-    reason: str = Field(description="The reason for the fallacy")
-    quote: str = Field(description="The quote that is the fallacy")
-    rating: int = Field(description="The rating of the fallacy")
-    explanation: str = Field(description="The explanation of the fallacy")
-
-class LogicalFallaciesResponse(BaseModel):
-    logical_fallacies: list[LogicalFallacy] = Field(description="The logical fallacies in the text")
-
-class LogicalFallacies(BaseModel):
-    logical_fallacies: list[LogicalFallacy] = Field(description="The logical fallacies in the text")
-    error: str | None = Field(description="The error message if the schema is not valid")

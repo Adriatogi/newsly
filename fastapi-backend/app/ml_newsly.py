@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, ValidationError
-from app.newsly_types import LogicalFallacy, LogicalFallacies, LogicalFallaciesResponse
+from app.newsly_types import LogicalFallacyServer, LogicalFallacyServerList, LogicalFallacyListAPI, LogicalFallacyComplete
 from app.clients import generate_together
 from app.utils import extract_json
 import app.prompts as prompts
@@ -277,32 +277,32 @@ async def get_logical_fallacies(text: str, sequential: bool = False) -> dict:
             get_scapegoating(text),
         )
 
-    return {
-        "ad_hominem": ad_hominem,
-        "discrediting_sources": discrediting_sources,
-        "emotion_fallacy": emotion_fallacy,
-        "false_dichotomy": false_dichotomy,
-        "fear_mongering": fear_mongering,
-        "good_sources": good_sources,
-        "non_sequitur": non_sequitur,
-        "presenting_other_side": presenting_other_side,
-        "scapegoating": scapegoating,
-    }
+    return LogicalFallacyComplete(
+        ad_hominem=ad_hominem,
+        discrediting_sources=discrediting_sources,
+        emotion_fallacy=emotion_fallacy,
+        false_dichotomy=false_dichotomy,
+        fear_mongering=fear_mongering,
+        good_sources=good_sources,
+        non_sequitur=non_sequitur,
+        presenting_other_side=presenting_other_side,
+        scapegoating=scapegoating,
+    )
 
 async def get_logical_fallacy_response(
     prompt: str,
     system_message: str,
     test_reason: str = None
-) -> LogicalFallaciesResponse:
+) -> LogicalFallacyServerList:
     """
     Helper to call the LLM, handle errors, and return a LogicalFallacyResponse.
     If utils.TEST is True and test_reason is provided, returns a test LogicalFallacyResponse.
     """
     if utils.TEST and test_reason:
         print(f"Test active {test_reason}")
-        return LogicalFallaciesResponse(
+        return LogicalFallacyServerList(
             logical_fallacies=[
-                LogicalFallacy(
+                LogicalFallacyServer(
                     reason=f"Test active {test_reason}",
                     quote=f"Test active {test_reason}",
                     rating=1,
@@ -326,21 +326,31 @@ async def get_logical_fallacy_response(
             messages=messages,
             max_tokens=1024,
             temperature=0.7,
-            response_format={"type": "json_object", "schema": LogicalFallaciesResponse.model_json_schema()}
+            response_format={"type": "json_object", "schema": LogicalFallacyListAPI.model_json_schema()}
         )
-        json_response = LogicalFallaciesResponse.model_validate_json(response)
+        json_response = LogicalFallacyListAPI.model_validate_json(response)
+
     except Exception as e:
         print("Error getting logical fallacies: ", e)
         error = e
 
     # get list of logical fallacies from json_response (to avoid double keying)
     logical_fallacies = json_response.logical_fallacies
-    return LogicalFallacies(
-        logical_fallacies=logical_fallacies,
+
+    # convert to LogicalFallaciesComplete
+    logical_fallacies_complete = [LogicalFallacyServer(
+        reason=fallacy.reason,
+        quote=fallacy.quote,
+        rating=fallacy.rating,
+        explanation=fallacy.explanation
+    ) for fallacy in logical_fallacies]
+
+    return LogicalFallacyServerList(
+        logical_fallacies=logical_fallacies_complete,
         error=error
     )
 
-async def get_ad_hominem(text: str) -> LogicalFallacies:
+async def get_ad_hominem(text: str) -> LogicalFallacyServerList:
     prompt = prompts.ad_hominem.format(text=text)
     return await get_logical_fallacy_response(
         prompt,
@@ -348,7 +358,7 @@ async def get_ad_hominem(text: str) -> LogicalFallacies:
         test_reason="ad hominem"
     )
 
-async def get_discrediting_sources(text: str) -> LogicalFallacies:
+async def get_discrediting_sources(text: str) -> LogicalFallacyServerList:
     prompt = prompts.discrediting_sources.format(text=text)
     return await get_logical_fallacy_response(
         prompt,
@@ -356,7 +366,7 @@ async def get_discrediting_sources(text: str) -> LogicalFallacies:
         test_reason="discrediting sources"
     )
 
-async def get_emotion_fallacy(text: str) -> LogicalFallacies:
+async def get_emotion_fallacy(text: str) -> LogicalFallacyServerList:
     prompt = prompts.emotion_fallacy.format(text=text)
     return await get_logical_fallacy_response(
         prompt,
@@ -364,7 +374,7 @@ async def get_emotion_fallacy(text: str) -> LogicalFallacies:
         test_reason="emotion fallacy"
     )
 
-async def get_false_dichotomy(text: str) -> LogicalFallacies:
+async def get_false_dichotomy(text: str) -> LogicalFallacyServerList:
     prompt = prompts.false_dichotomy_fallacy.format(text=text)
     return await get_logical_fallacy_response(
         prompt,
@@ -372,7 +382,7 @@ async def get_false_dichotomy(text: str) -> LogicalFallacies:
         test_reason="false dichotomy"
     )
 
-async def get_fear_mongering(text: str) -> LogicalFallacies:
+async def get_fear_mongering(text: str) -> LogicalFallacyServerList:
     prompt = prompts.fear_mongering_fallacy.format(text=text)
     return await get_logical_fallacy_response(
         prompt,
@@ -380,7 +390,7 @@ async def get_fear_mongering(text: str) -> LogicalFallacies:
         test_reason="fear mongering"
     )
 
-async def get_good_sources(text: str) -> LogicalFallacies:
+async def get_good_sources(text: str) -> LogicalFallacyServerList:
     prompt = prompts.good_sources.format(text=text)
     return await get_logical_fallacy_response(
         prompt,
@@ -388,7 +398,7 @@ async def get_good_sources(text: str) -> LogicalFallacies:
         test_reason="good sources"
     )
 
-async def get_non_sequitur(text: str) -> LogicalFallacies:
+async def get_non_sequitur(text: str) -> LogicalFallacyServerList:
     prompt = prompts.non_sequitur.format(text=text)
     return await get_logical_fallacy_response(
         prompt,
@@ -396,7 +406,7 @@ async def get_non_sequitur(text: str) -> LogicalFallacies:
         test_reason="non-sequitur"
     )
 
-async def get_presenting_other_side(text: str) -> LogicalFallacies:
+async def get_presenting_other_side(text: str) -> LogicalFallacyServerList:
     prompt = prompts.presenting_other_side.format(text=text)
     return await get_logical_fallacy_response(
         prompt,
@@ -404,7 +414,7 @@ async def get_presenting_other_side(text: str) -> LogicalFallacies:
         test_reason="presenting the other side"
     )
 
-async def get_scapegoating(text: str) -> LogicalFallacies:
+async def get_scapegoating(text: str) -> LogicalFallacyServerList:
     prompt = prompts.scapegoating.format(text=text)
     return await get_logical_fallacy_response(
         prompt,
