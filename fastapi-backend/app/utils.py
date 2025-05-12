@@ -24,8 +24,8 @@ class NewslyArticle:
     text: str
     authors: list[str]
     image_url: str
-    published_date: datetime
-    last_analyzed_at: datetime
+    published_date: str
+    last_analyzed_at: str
     source_url: str
     read_count: int = 1  # start with 1 for new articles
     keywords: list[str] = field(default_factory=list)
@@ -41,7 +41,7 @@ class NewslyArticle:
     # fields for the database
     # These fields are set by the database and should not be set manually
     id: str = None
-    created_at: datetime = None
+    created_at: str = None
 
 
 def normalize_url(url: str) -> str:
@@ -126,7 +126,7 @@ def parse_article(url: str) -> NewslyArticle:
         authors=article.authors,
         image_url=article.top_image,
         published_date=date,
-        last_analyzed_at=datetime.now(),
+        last_analyzed_at=datetime.now().isoformat(),
         source_url=url,
         keywords=article.keywords or [],
         images=article.images or [],
