@@ -311,8 +311,8 @@ async def get_logical_fallacy_response(
             ],
             error=None
         )
-    else:
-        print("test not active")
+    
+    print(f"Running {test_reason}")
 
     error = None
     json_response = None
