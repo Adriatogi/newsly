@@ -54,7 +54,7 @@ async def analyze_article(article: NewslyArticle, no_modal: bool = False) -> Non
     article.contextualization = contextualization
     article.logical_fallacies = logical_fallacies
 
-async def process_article_db(url: str, cache=True) -> NewslyArticle:
+async def process_article_db(url: str, cache=True) -> NewslyArticle | None:
     """
     Analyze an article from the given URL.
     """
@@ -64,8 +64,6 @@ async def process_article_db(url: str, cache=True) -> NewslyArticle:
 
     if article:  # If the article is already in the database, increment the read count
         increment_article_read_count(article.id, article.read_count)
-
-        print("Article already in db: ", article)
 
         # If the article is already analyzed, return it
         if (

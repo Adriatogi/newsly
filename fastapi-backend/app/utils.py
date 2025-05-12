@@ -95,7 +95,7 @@ def parse_article(url: str) -> NewslyArticle:
         authors=article.authors,
         image_url=article.top_image,
         published_date=date,
-        last_analyzed_at=datetime.now(),
+        last_analyzed_at=datetime.now().isoformat(),
         source_url=url,
         keywords=article.keywords or [],
         images=article.images or [],
