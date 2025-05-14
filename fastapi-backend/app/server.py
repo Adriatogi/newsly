@@ -2,20 +2,12 @@ from newspaper import Article
 import modal
 import asyncio
 
-from app.ml_newsly import llm_summarize, political_bias, extract_topics, contextualize_article
+from app.ml_newsly import extract_topics, contextualize_article, bias_explanation, llm_summarize, political_bias
 from app.utils import normalize_url, parse_article
 from app.db import get_article_by_url, increment_article_read_count, add_article_to_db
 
 modal_summarize = modal.Function.from_name("newsly-modal-test", "summarize")
 modal_political_bias = modal.Function.from_name("newsly-modal-test", "political_bias")
-
-async def generate_explanation(predicted_bias: str, probabilities: dict):
-    explanation = f"This article leans {predicted_bias} because: "
-    if predicted_bias == "left":
-        explanation += "It emphasizes social justice, government intervention, and progressive policies."
-    elif predicted_bias == "right":
-        explanation += "It focuses on individual responsibility, limited government, and traditional values."
-    return explanation
 
 async def analyze_article(article: Article):
     """
@@ -27,41 +19,27 @@ async def analyze_article(article: Article):
     bias = modal_political_bias.remote.aio(article.text)
     summary, bias = await asyncio.gather(summary, bias)
 
+    predicted_bias = bias.get("predicted_bias", "unknown")
+    probabilities = bias.get("probabilities", {})
 
     topics = await extract_topics(article.text)
     contextualization = await contextualize_article(article.text, topics)
+    explanation = await bias_explanation(article.text, predicted_bias, probabilities)
 
-    predicted_bias = bias.get("predicted_bias", "unknown")
-    probabilities = bias.get("probabilities", {})
-    explanation = bias.get("explanation", "No explanation available")
-
-        # Generate explanation
-    explanation = f"This article leans {predicted_bias} because: "
-    if predicted_bias == "left":
-        explanation += "It emphasizes social justice, government intervention, and progressive policies."
-    elif predicted_bias == "right":
-        explanation += "It focuses on individual responsibility, limited government, and traditional values."
-    else:
-        explanation += "It presents a balanced view with consideration of multiple perspectives."
-
-    print(f"Generated explanation: {explanation}")
 
     bias_data = {
         "predicted_bias": predicted_bias,
-        "explanation": explanation,
-        "probabilities": probabilities
+        "probabilities": probabilities,
+        "bias_explanation": explanation
     }
-
-    print("Processed bias_data:", bias_data)
 
     return {
         "summary": summary,
         "bias": bias_data["predicted_bias"],
-        "bias_explanation": bias_data["explanation"],
         "bias_probabilities": bias_data["probabilities"],
+        "bias_explanation": bias_data["bias_explanation"],
         "topics": topics,
-        "contextualization": contextualization, 
-        "explanation": explanation
+        "contextualization": contextualization
     }
 
 

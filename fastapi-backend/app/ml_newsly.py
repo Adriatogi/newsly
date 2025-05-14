@@ -22,6 +22,56 @@ except ImportError:
     print("PyTorch not installed, using CPU")
 
 
+async def bias_explanation(text: str, predicted_bias: str, probabilities: dict):
+    if utils.TEST:
+        print("Test active bias explanation")
+        return "Test active explanation"
+
+    if device == 'cuda':
+        explainer = pipeline("text-generation", model="gpt2-medium")
+        prompt = f"""
+        Based on the article text, explain why it was classified as {predicted_bias} leaning.
+        Focus on specific examples from the text and explain the reasoning.
+        If it enriches the explanation, pull from the model's confidence in this classification given
+        {probabilities[predicted_bias]:.2f}, but don't get too technical/verbose. 
+
+        Article text:
+        {text}
+
+        Explanation:
+        """
+        explanation = explainer(prompt, max_length=1024, do_sample=False)
+        return explanation[0].get("generated_text", explanation[0].get("text", ""))
+    else:
+        prompt = f"""
+        Based on the article text, explain why it was classified as {predicted_bias} leaning.
+        Focus on specific examples from the text and explain the reasoning.
+        If it enriches the explanation, pull from the model's confidence in this classification given
+        {probabilities[predicted_bias]:.2f}, but don't get too technical/verbose. 
+
+        Article text:
+        {text}
+
+        Provide a clear explanation focusing on:
+        1. Key phrases or topics that indicate {predicted_bias} bias
+        2. The overall tone and perspective
+        3. Specific examples from the text
+
+        Explanation:
+        """
+        messages = [
+            {"role": "system", "content": "You are a helpful expert well-versed in political bias and the news."},
+            {"role": "user", "content": prompt}
+        ]
+        
+        explanation = generate_together(
+            model="meta-llama/Llama-3.3-70B-Instruct-Turbo",
+            messages=messages,
+            max_tokens=1024,
+            temperature=0.7,
+        )
+        
+        return explanation
 
 async def political_bias(text: str) -> dict:
 

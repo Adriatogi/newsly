@@ -60,39 +60,46 @@ def summarize(text: str) -> str:
     gpu="L4",
     image=image,
     volumes={"/root/.cache/huggingface": hf_cache_vol},
-    scaledown_window=60,  # idle timeout to 60 secs
+    scaledown_window=60,  
 )
 async def political_bias(text: str) -> dict:
     from transformers import AutoTokenizer, AutoModelForSequenceClassification
     import torch
 
-    # Get the model and tokenizer
+    print("Starting political bias analysis...")
+
     tokenizer = AutoTokenizer.from_pretrained("bucketresearch/politicalBiasBERT")
     model = AutoModelForSequenceClassification.from_pretrained(
         "bucketresearch/politicalBiasBERT"
     )
 
-    print("model loaded")
+    print("Model loaded successfully")
 
     inputs = tokenizer(text, return_tensors="pt", truncation=True, max_length=512)
     outputs = model(**inputs)
     logits = outputs.logits
 
     raw_probabilities = torch.softmax(logits, dim=1)
-
     predicted_class = torch.argmax(raw_probabilities, dim=1).item()
     probabilities = raw_probabilities[0].tolist()
 
     class_labels = ["left", "center", "right"]
     predicted_bias = class_labels[predicted_class]
 
-    data = {
-        "probabilities": {
-            "left": probabilities[0],
-            "center": probabilities[1],
-            "right": probabilities[2],
-        },
-        "predicted_bias": predicted_bias,
+    print(f"Predicted bias: {predicted_bias}")
+    print(f"Raw probabilities: {probabilities}")
+
+    probabilities_dict = {
+        "left": float(probabilities[0]),
+        "center": float(probabilities[1]),
+        "right": float(probabilities[2])
     }
-    print("data:", data)
+
+    data = {
+        "probabilities": probabilities_dict,
+        "predicted_bias": str(predicted_bias)
+    }
+    
+    print("Final data structure being returned:", data)
     return data
+
