@@ -2,7 +2,17 @@ import { Session } from "@supabase/supabase-js";
 import { useEffect, useState, Fragment } from "react";
 import { supabase } from "@/lib/supabase";
 import Auth from "@/components/Auth";
-import { Alert, StyleSheet, Text, View, Image, TouchableOpacity, Modal, TextInput, ActivityIndicator } from "react-native";
+import {
+  Alert,
+  StyleSheet,
+  Text,
+  View,
+  Image,
+  TouchableOpacity,
+  Modal,
+  TextInput,
+  ActivityIndicator,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { FontAwesome } from "@expo/vector-icons";
 
@@ -14,9 +24,11 @@ export default function App() {
       setSession(session);
     });
 
-    supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
+    supabase.auth.onAuthStateChange(
+      (_event: string, session: Session | null) => {
+        setSession(session);
+      }
+    );
   }, []);
 
   const [loading, setLoading] = useState(true);
@@ -24,7 +36,7 @@ export default function App() {
   const [fullName, setFullName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [editing, setEditing] = useState(false);
-  
+
   // Temporary states for editing
   const [editUsername, setEditUsername] = useState("");
   const [editFullName, setEditFullName] = useState("");
@@ -75,10 +87,10 @@ export default function App() {
 
   const handleSaveProfile = async () => {
     if (!session?.user) return;
-    
+
     try {
       setIsSaving(true);
-      
+
       const updates = {
         id: session.user.id,
         username: editUsername,
@@ -86,18 +98,16 @@ export default function App() {
         avatar_url: editAvatarUrl,
         updated_at: new Date(),
       };
-      
-      const { error } = await supabase
-        .from('profiles')
-        .upsert(updates);
-      
+
+      const { error } = await supabase.from("profiles").upsert(updates);
+
       if (error) throw error;
-      
+
       // Update local state with new values
       setUsername(editUsername);
       setFullName(editFullName);
       setAvatarUrl(editAvatarUrl);
-      
+
       Alert.alert("Profile updated successfully!");
       setEditing(false);
     } catch (error) {
@@ -115,10 +125,7 @@ export default function App() {
         {session ? (
           <View style={styles.profileContainer}>
             {avatarUrl ? (
-              <Image
-                source={{ uri: avatarUrl }}
-                style={styles.avatar}
-              />
+              <Image source={{ uri: avatarUrl }} style={styles.avatar} />
             ) : (
               <View style={styles.avatarPlaceholder}>
                 <FontAwesome name="user-circle" size={100} color="#ccc" />
@@ -126,16 +133,21 @@ export default function App() {
             )}
             <Text style={styles.email}>{session.user.email}</Text>
             <Text style={styles.name}>{fullName || username}</Text>
-            
-            <TouchableOpacity 
-              style={styles.editButton} 
+
+            <TouchableOpacity
+              style={styles.editButton}
               onPress={handleEditProfile}
             >
-              <FontAwesome name="edit" size={16} color="#fff" style={styles.editIcon} />
+              <FontAwesome
+                name="edit"
+                size={16}
+                color="#fff"
+                style={styles.editIcon}
+              />
               <Text style={styles.editButtonText}>Edit Profile</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={styles.signOutButton}
               onPress={() => supabase.auth.signOut()}
             >
@@ -159,7 +171,7 @@ export default function App() {
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
               <Text style={styles.modalTitle}>Edit Profile</Text>
-              
+
               <View style={styles.inputContainer}>
                 <Text style={styles.inputLabel}>Username</Text>
                 <TextInput
@@ -169,7 +181,7 @@ export default function App() {
                   placeholder="Enter username"
                 />
               </View>
-              
+
               <View style={styles.inputContainer}>
                 <Text style={styles.inputLabel}>Full Name</Text>
                 <TextInput
@@ -179,7 +191,7 @@ export default function App() {
                   placeholder="Enter full name"
                 />
               </View>
-              
+
               <View style={styles.inputContainer}>
                 <Text style={styles.inputLabel}>Avatar URL</Text>
                 <TextInput
@@ -189,18 +201,18 @@ export default function App() {
                   placeholder="Enter avatar URL"
                 />
               </View>
-              
+
               <View style={styles.modalButtons}>
-                <TouchableOpacity 
-                  style={styles.cancelButton} 
+                <TouchableOpacity
+                  style={styles.cancelButton}
                   onPress={handleCancelEdit}
                   disabled={isSaving}
                 >
                   <Text style={styles.cancelButtonText}>Cancel</Text>
                 </TouchableOpacity>
-                
-                <TouchableOpacity 
-                  style={styles.saveButton} 
+
+                <TouchableOpacity
+                  style={styles.saveButton}
                   onPress={handleSaveProfile}
                   disabled={isSaving}
                 >
@@ -232,7 +244,7 @@ const styles = StyleSheet.create({
     height: 100,
     borderRadius: 50,
     marginBottom: 16,
-    backgroundColor: '#eee',
+    backgroundColor: "#eee",
   },
   avatarPlaceholder: {
     marginBottom: 16,
@@ -244,21 +256,21 @@ const styles = StyleSheet.create({
   },
   name: {
     fontSize: 18,
-    color: '#555',
+    color: "#555",
     marginBottom: 24,
   },
   editButton: {
-    flexDirection: 'row',
-    backgroundColor: '#4a90e2',
+    flexDirection: "row",
+    backgroundColor: "#4a90e2",
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 5,
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: 16,
   },
   editButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
+    color: "#fff",
+    fontWeight: "bold",
     fontSize: 14,
   },
   editIcon: {
@@ -269,28 +281,28 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   signOutButtonText: {
-    color: '#ff6347',
+    color: "#ff6347",
     fontSize: 14,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   modalOverlay: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.5)",
   },
   modalContent: {
-    backgroundColor: 'white',
+    backgroundColor: "white",
     borderRadius: 10,
     padding: 20,
-    width: '80%',
+    width: "80%",
     maxWidth: 400,
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 20,
-    textAlign: 'center',
+    textAlign: "center",
   },
   inputContainer: {
     marginBottom: 16,
@@ -298,18 +310,18 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 14,
     marginBottom: 4,
-    color: '#555',
+    color: "#555",
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: "#ddd",
     borderRadius: 5,
     padding: 10,
     fontSize: 16,
   },
   modalButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginTop: 20,
   },
   cancelButton: {
@@ -317,21 +329,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderRadius: 5,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: "#ddd",
   },
   cancelButtonText: {
-    color: '#555',
+    color: "#555",
     fontSize: 14,
   },
   saveButton: {
-    backgroundColor: '#4a90e2',
+    backgroundColor: "#4a90e2",
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 5,
   },
   saveButtonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 14,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
 });
