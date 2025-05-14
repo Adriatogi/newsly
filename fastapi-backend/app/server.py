@@ -7,6 +7,7 @@ from app.ml_newsly import (
     political_bias,
     extract_topics,
     contextualize_article,
+    get_logical_fallacies,
 )
 from app.utils import normalize_url, parse_article, NewslyArticle
 from app.db import (
@@ -23,17 +24,27 @@ modal_contextualize_article = modal.Function.from_name(
     "newsly-modal-test", "contextualize_article"
 )
 
+NO_MODAL = False
 
-async def analyze_article(article: NewslyArticle) -> None:
+async def analyze_article(article: NewslyArticle, no_modal: bool = NO_MODAL) -> None:
     """
     Analyze an article. It will set the properties of the article to the result of the analysis.
     """
 
     print("Analyzing article")
-    summary = modal_summarize.remote.aio(article.text)
-    bias = modal_political_bias.remote.aio(article.text)
-    topics = modal_extract_topics.remote.aio(article.text)
-    summary, bias, topics = await asyncio.gather(summary, bias, topics)
+    if no_modal:
+        print("Running no modal")
+        summary = await llm_summarize(article.text)
+        bias = await political_bias(article.text)
+        topics = await extract_topics(article.text)
+        logical_fallacies = await get_logical_fallacies(article.text)
+    else:
+        print("Running modal")
+        summary = modal_summarize.remote.aio(article.text)
+        bias = modal_political_bias.remote.aio(article.text)
+        topics = modal_extract_topics.remote.aio(article.text)
+        logical_fallacies = get_logical_fallacies(article.text)
+        summary, bias, topics, logical_fallacies = await asyncio.gather(summary, bias, topics, logical_fallacies)
 
     # contextualizing depends on `topics` so we need to wait for it. Can't run async with other functions
     contextualization = modal_contextualize_article.remote(
@@ -45,7 +56,7 @@ async def analyze_article(article: NewslyArticle) -> None:
     article.bias = bias
     article.topics = topics
     article.contextualization = contextualization
-
+    article.logical_fallacies = logical_fallacies
 
 async def process_article_db(url: str, cache=True) -> NewslyArticle | None:
     """
@@ -64,6 +75,7 @@ async def process_article_db(url: str, cache=True) -> NewslyArticle | None:
             and article.bias
             and article.topics
             and article.contextualization
+            and article.logical_fallacies
         ):
             print("Article already analyzed")
             return article
