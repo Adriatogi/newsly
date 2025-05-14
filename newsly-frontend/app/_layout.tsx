@@ -1,8 +1,8 @@
-import 'react-native-gesture-handler';
-import React, { useEffect } from 'react';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { Slot, useRouter } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
+import "react-native-gesture-handler";
+import React, { useEffect } from "react";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { Slot, useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 
 export default function RootLayout() {
   const router = useRouter();
@@ -10,7 +10,7 @@ export default function RootLayout() {
   // Delay redirection slightly to let navigation initialize
   useEffect(() => {
     const timeout = setTimeout(() => {
-      router.replace('/tabs/feed');
+      router.replace("/tabs/feed");
     }, 100); // 100ms delay helps prevent navigation context errors
 
     return () => clearTimeout(timeout);
