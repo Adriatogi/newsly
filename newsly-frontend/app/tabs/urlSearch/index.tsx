@@ -9,8 +9,16 @@ import {
   TouchableOpacity,
   Animated,
   ActivityIndicator,
+  useColorScheme,
+  Pressable,
+  LayoutAnimation,
+  Platform,
+  UIManager,
 } from "react-native";
-import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
+import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+
+if (Platform.OS === "android")
+  UIManager.setLayoutAnimationEnabledExperimental?.(true);
 
 const getBiasPos = (bias: string) => {
   switch (bias.toLowerCase()) {
@@ -39,22 +47,25 @@ interface AnalysisData {
   pubDate: string;
   bias: string;
   fallacies: string[];
-  misinformation: string[];
+  context: string[];
   contextSummary: string;
 }
 
 export default function App() {
-  const snapPoints = useMemo(() => ["25%", "50%", "90%"], []);
-  const bottomSheetRef = useRef<BottomSheet>(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const handleClosePress = () => bottomSheetRef.current?.close();
-  const handleOpenPress = () => bottomSheetRef.current?.expand();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
+  const [sections, setSections] = useState<{ [k: string]: boolean }>({});
 
   const [url, setUrl] = useState("");
   const [analysisData, setAnalysisData] = useState<AnalysisData[] | null>(null);
   const [loading, setLoading] = useState(false);
-  const [endpointData, setEndpointData] = useState("");
   const [error, setError] = useState<string | null>(null);
+
+  const toggleSection = (k: string) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setSections((p) => ({ ...p, [k]: !p[k] }));
+  };
 
   useEffect(() => {
     if (loading) {
@@ -94,6 +105,7 @@ export default function App() {
         );
       }
       const result = await response.json();
+      console.log(result);
       const parsed: AnalysisData[] = [
         {
           source: result.source || "Unknown Source",
@@ -102,11 +114,10 @@ export default function App() {
           pubDate: result.published_date || "Unknown Date",
           bias: result.bias?.predicted_bias || "center",
           fallacies: result.fallacies || [],
-          misinformation: result.misinformation || [],
+          context: result.contextualization || [],
           contextSummary: result.summary || result.text || "",
         },
       ];
-      setEndpointData(JSON.stringify(result, null, 2));
       setAnalysisData(parsed);
     } catch (error) {
       console.error("Error fetching from root endpoint:", error);
@@ -121,22 +132,78 @@ export default function App() {
     }
   };
 
+  const renderBiasBar = (bias: string) => (
+    <Pressable onPress={() => toggleSection("Political Bias Analysis")}>
+      <View
+        style={{
+          ...styles.biasBar,
+          flexDirection: "row",
+          borderRadius: 8,
+          overflow: "hidden",
+        }}
+      >
+        <View
+          style={{ flex: 0.5, backgroundColor: "#3b82f6", height: "100%" }}
+        />
+        <View
+          style={{ flex: 0.5, backgroundColor: "#ef4444", height: "100%" }}
+        />
+        <View style={styles.biasOverlay}>
+          <View style={styles.iconRow}>
+            <View style={styles.biasIconWrapper}>
+              <MaterialCommunityIcons
+                name="scale-balance"
+                size={18}
+                color="#D74D41"
+              />
+            </View>
+            <Text style={styles.label}>Political Bias Analysis</Text>
+          </View>
+          <Text style={styles.caret}>
+            {sections["Political Bias Analysis"] ? "˄" : "˅"}
+          </Text>
+        </View>
+      </View>
+    </Pressable>
+  );
+
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView
+      style={[
+        styles.safeArea,
+        { backgroundColor: isDark ? "#152B3F" : "#F8F6EF" },
+      ]}
+    >
       <Animated.View style={[styles.loadingOverlay, { opacity: fadeAnim }]}>
         <ActivityIndicator size="large" color="#152B3F" />
-        <Text style={styles.loadingText}>Analyzing Article...</Text>
+        <Text style={[styles.loadingText, { color: "#152B3F" }]}>
+          Analyzing Article...
+        </Text>
       </Animated.View>
       <ScrollView
         contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.subheadingBold}>Analyze Any News Article</Text>
+        <Text
+          style={[
+            styles.subheadingBold,
+            { color: isDark ? "#FFFFF4" : "#152B3F" },
+          ]}
+        >
+          Analyze Any News Article
+        </Text>
         <TextInput
-          style={styles.input}
+          style={[
+            styles.input,
+            {
+              backgroundColor: isDark ? "#2a3b55" : "#FBFBFC",
+              color: isDark ? "#EDEDED" : "#152B3F",
+              borderColor: isDark ? "#3a4b65" : "#ccc",
+            },
+          ]}
           placeholder="https://example.com/news-article"
           value={url}
-          placeholderTextColor={"#a9a9a9"}
+          placeholderTextColor={isDark ? "#888" : "#a9a9a9"}
           onChangeText={setUrl}
           autoCapitalize="none"
         />
@@ -144,96 +211,233 @@ export default function App() {
           <TouchableOpacity
             onPress={handleAnalyzeArticle}
             disabled={!url || loading}
-            style={{
-              backgroundColor: "#152B3F",
-              paddingVertical: 15,
-              borderRadius: 15,
-              alignItems: "center",
-              opacity: !url || loading ? 0.5 : 1,
-            }}
+            style={[
+              styles.analyzeButton,
+              {
+                backgroundColor: isDark ? "#FFFFF4" : "#152B3F",
+                opacity: !url || loading ? 0.5 : 1,
+              },
+            ]}
           >
-            <Text style={{ fontWeight: "bold", fontSize: 22, color: "white" }}>
+            <Text
+              style={[
+                styles.analyzeButtonText,
+                { color: isDark ? "#152B3F" : "#FFFFF4" },
+              ]}
+            >
               Analyze
             </Text>
           </TouchableOpacity>
         </View>
 
         {error && (
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>{error}</Text>
-            <Text style={styles.errorSubtext}>
+          <View
+            style={[
+              styles.errorContainer,
+              {
+                backgroundColor: isDark ? "#2a3b55" : "#ffebee",
+                borderColor: isDark ? "#3a4b65" : "#ffcdd2",
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.errorText,
+                { color: isDark ? "#ff6b6b" : "#c62828" },
+              ]}
+            >
+              {error}
+            </Text>
+            <Text
+              style={[
+                styles.errorSubtext,
+                { color: isDark ? "#ff8f8f" : "#b71c1c" },
+              ]}
+            >
               Please try again with a different URL or check if the article is
               accessible.
             </Text>
           </View>
         )}
+
         {analysisData && (
           <View style={styles.dashboard}>
-            <Text style={styles.dashboardHeading}>Analysis Dashboard</Text>
             {analysisData.map((item, index) => (
-              <View key={index}>
-                <View style={styles.mainCard}>
-                  <Text style={styles.mainCardContent}>{item.title}</Text>
-                  <Text style={{ fontSize: 16, marginTop: 7 }}>
-                    {item.authors} • {formatDate(item.pubDate)}
-                  </Text>
-                </View>
-                <View style={styles.mainCard}>
-                  <Text style={styles.mainCardContent}>Political Bias</Text>
-                  <View style={styles.biasContainer}>
-                    <Text style={styles.biasLabel}>L</Text>
-                    <View style={styles.biasBar}>
-                      <View
-                        style={[
-                          styles.biasDot,
-                          { left: getBiasPos(item.bias) },
-                        ]}
-                      />
-                    </View>
-                    <Text style={styles.biasLabel}>R</Text>
-                  </View>
-                </View>
-                <TouchableOpacity
-                  style={[
-                    styles.mainCard,
-                    {
-                      shadowColor: "#ccc",
-                      shadowOpacity: 1,
-                      shadowRadius: 6,
-                      shadowOffset: { width: 4, height: 4 },
-                    },
-                  ]}
-                  onPress={handleOpenPress}
+              <View
+                key={index}
+                style={[
+                  styles.box,
+                  {
+                    backgroundColor: isDark ? "#0B1724" : "#FDFDF8",
+                    shadowColor: isDark ? "#000" : "#ccc",
+                  },
+                ]}
+              >
+                <Text
+                  style={[styles.title, { color: isDark ? "#fff" : "#152B3F" }]}
                 >
-                  <Text style={styles.mainCardContent}>Context Summary</Text>
-                  <Text style={{ fontSize: 16, marginTop: 5 }}>
-                    {item.contextSummary}
-                  </Text>
-                </TouchableOpacity>
+                  {item.title}
+                </Text>
+                <Text
+                  style={[
+                    styles.sectionLabel,
+                    { color: isDark ? "#888" : "#666" },
+                  ]}
+                >
+                  {item.authors.join(", ")} • {formatDate(item.pubDate)}
+                </Text>
+                <Text
+                  style={[
+                    styles.summary,
+                    { color: isDark ? "#EDEDED" : "#152B3F" },
+                  ]}
+                >
+                  {item.contextSummary}
+                </Text>
 
-                <View style={styles.subcardsContainer}>
-                  <View style={styles.subCard}>
-                    <Text style={[styles.mainCardContent, { fontSize: 16 }]}>
-                      Logical Fallacies
-                    </Text>
-                    {item.fallacies.length > 0 ? (
-                      <Text style={{ fontSize: 16, marginTop: 5 }}>
-                        {item.fallacies.join("\n")}
-                      </Text>
-                    ) : (
-                      <Text>None</Text>
+                <View style={styles.sections}>
+                  <View style={styles.section}>
+                    {renderBiasBar(item.bias)}
+                    {sections["Political Bias Analysis"] && (
+                      <View style={styles.highlights}>
+                        <Text
+                          style={[
+                            styles.blue,
+                            { color: isDark ? "#fff" : "#152B3F" },
+                          ]}
+                        >
+                          Left-leaning content
+                        </Text>
+                        <Text
+                          style={[
+                            styles.red,
+                            { color: isDark ? "#fff" : "#152B3F" },
+                          ]}
+                        >
+                          Right-leaning content
+                        </Text>
+                      </View>
                     )}
                   </View>
-                  <View style={styles.subCard}>
-                    <Text style={[styles.mainCardContent, { fontSize: 17 }]}>
-                      Misinformation Flags
-                    </Text>
-                    {item.misinformation.length > 0 ? (
-                      <Text style={{ fontSize: 16, marginTop: 5 }}>
-                        {item.misinformation.join("\n")}
-                      </Text>
-                    ) : (
-                      <Text>None</Text>
+
+                  <View style={styles.section}>
+                    <Pressable
+                      onPress={() => toggleSection("Logical Fallacies")}
+                      style={[
+                        styles.button,
+                        { backgroundColor: isDark ? "#2a3b55" : "#eee" },
+                      ]}
+                    >
+                      <View style={styles.row}>
+                        <View style={styles.iconRow}>
+                          <View style={styles.biasIconWrapper}>
+                            <Feather name="divide" size={18} color="#D74D41" />
+                          </View>
+                          <Text
+                            style={[
+                              styles.label,
+                              { color: isDark ? "#fff" : "#152B3F" },
+                            ]}
+                          >
+                            Logical Fallacies
+                          </Text>
+                        </View>
+                        <Text
+                          style={[
+                            styles.caret,
+                            { color: isDark ? "#fff" : "#000" },
+                          ]}
+                        >
+                          {sections["Logical Fallacies"] ? "˄" : "˅"}
+                        </Text>
+                      </View>
+                    </Pressable>
+                    {sections["Logical Fallacies"] && (
+                      <View style={styles.content}>
+                        {item.fallacies.length > 0 ? (
+                          item.fallacies.map((fallacy, i) => (
+                            <Text
+                              key={i}
+                              style={[
+                                styles.body,
+                                { color: isDark ? "#ddd" : "#444" },
+                              ]}
+                            >
+                              • {fallacy}
+                            </Text>
+                          ))
+                        ) : (
+                          <Text
+                            style={[
+                              styles.body,
+                              { color: isDark ? "#ddd" : "#444" },
+                            ]}
+                          >
+                            No logical fallacies detected
+                          </Text>
+                        )}
+                      </View>
+                    )}
+                  </View>
+
+                  <View style={styles.section}>
+                    <Pressable
+                      onPress={() => toggleSection("Historical Context")}
+                      style={[
+                        styles.button,
+                        { backgroundColor: isDark ? "#2a3b55" : "#eee" },
+                      ]}
+                    >
+                      <View style={styles.row}>
+                        <View style={styles.iconRow}>
+                          <View style={styles.biasIconWrapper}>
+                            <Feather
+                              name="book-open"
+                              size={18}
+                              color="#D74D41"
+                            />
+                          </View>
+                          <Text
+                            style={[
+                              styles.label,
+                              { color: isDark ? "#fff" : "#152B3F" },
+                            ]}
+                          >
+                            Historical Context
+                          </Text>
+                        </View>
+                        <Text
+                          style={[
+                            styles.caret,
+                            { color: isDark ? "#fff" : "#000" },
+                          ]}
+                        >
+                          {sections["Historical Context"] ? "˄" : "˅"}
+                        </Text>
+                      </View>
+                    </Pressable>
+                    {sections["Historical Context"] && (
+                      <View style={styles.content}>
+                        {item.context ? (
+                          <Text
+                            style={[
+                              styles.body,
+                              { color: isDark ? "#ddd" : "#444" },
+                            ]}
+                          >
+                            {item.context}
+                          </Text>
+                        ) : (
+                          <Text
+                            style={[
+                              styles.body,
+                              { color: isDark ? "#ddd" : "#444" },
+                            ]}
+                          >
+                            No historical context available
+                          </Text>
+                        )}
+                      </View>
                     )}
                   </View>
                 </View>
@@ -242,21 +446,6 @@ export default function App() {
           </View>
         )}
       </ScrollView>
-      <BottomSheet
-        ref={bottomSheetRef}
-        index={-1}
-        snapPoints={snapPoints}
-        enablePanDownToClose={true}
-        backgroundStyle={{ backgroundColor: "#f0f0f0" }}
-        handleIndicatorStyle={{ backgroundColor: "#888", width: 40 }}
-      >
-        <BottomSheetView style={styles.bottomSheetContent}>
-          <Text style={styles.subheadingBold}>Context Summary</Text>
-          <ScrollView showsVerticalScrollIndicator={false}>
-            <Text style={{ fontSize: 16, marginTop: 5 }}>{endpointData}</Text>
-          </ScrollView>
-        </BottomSheetView>
-      </BottomSheet>
     </SafeAreaView>
   );
 }
@@ -264,48 +453,41 @@ export default function App() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "white",
   },
   container: {
     paddingVertical: 40,
     paddingHorizontal: 30,
     flexGrow: 1,
     alignItems: "center",
-    backgroundColor: "#white",
   },
-  heading: {
-    fontSize: 40,
-    fontWeight: "bold",
+  subheadingBold: {
+    fontSize: 28,
     marginBottom: 20,
-    color: "#152B3F",
-  },
-  subheading: {
-    fontSize: 18,
-    marginBottom: 10,
-    color: "#152B3F",
+    marginLeft: 13,
+    marginRight: 13,
+    fontWeight: "700",
+    textAlign: "center",
   },
   input: {
     height: 40,
     width: "90%",
-    borderColor: "#ccc",
     borderWidth: 1,
     borderRadius: 10,
     paddingHorizontal: 10,
-    backgroundColor: "#FBFBFC",
     marginBottom: 20,
-  },
-  subheadingBold: {
-    fontSize: 40,
-    marginBottom: 20,
-    marginLeft: 13,
-    marginRight: 13,
-    fontWeight: "bold",
-    color: "#152B3F",
-    textAlign: "center",
   },
   buttonContainer: {
     width: "90%",
     marginBottom: 10,
+  },
+  analyzeButton: {
+    paddingVertical: 15,
+    borderRadius: 15,
+    alignItems: "center",
+  },
+  analyzeButtonText: {
+    fontWeight: "bold",
+    fontSize: 22,
   },
   loadingOverlay: {
     position: "absolute",
@@ -321,95 +503,125 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 10,
     fontSize: 16,
-    color: "#152B3F",
     fontWeight: "500",
   },
   dashboard: {
     marginTop: 30,
     width: "100%",
   },
-  dashboardHeading: {
-    fontSize: 27,
-    fontWeight: "bold",
+  box: {
+    borderRadius: 16,
+    padding: 20,
+    shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 2,
+    position: "relative",
     marginBottom: 20,
-    textAlign: "center",
   },
-  mainCard: {
-    backgroundColor: "#fff",
-    padding: 15,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#ccc",
+  title: {
+    fontSize: 22,
+    fontWeight: "bold",
     marginBottom: 12,
   },
-  mainCardContent: {
-    fontSize: 20,
-    fontWeight: "bold",
+  sectionLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: 4,
   },
-
-  subcardsContainer: {
+  summary: {
+    fontSize: 16,
+    lineHeight: 24,
+  },
+  sections: {
+    marginTop: 24,
+  },
+  section: {
+    marginBottom: 12,
+  },
+  button: {
+    height: 50,
+    padding: 12,
+    borderRadius: 8,
+  },
+  row: {
     flexDirection: "row",
     justifyContent: "space-between",
-    width: "100%",
-    marginBottom: 12,
+    alignItems: "center",
   },
-
-  subCard: {
-    // half the size of the main card
-    backgroundColor: "#fff",
-    padding: 15,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    width: "48.5%",
-  },
-
-  biasContainer: {
+  iconRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 10,
   },
-  biasLabel: {
-    fontSize: 16,
+  label: {
+    fontSize: 15,
+    fontWeight: "500",
+  },
+  caret: {
+    fontSize: 22,
+    fontWeight: "600",
+  },
+  body: {
+    paddingTop: 8,
+    fontSize: 14,
+    lineHeight: 20,
   },
   biasBar: {
-    flex: 1,
-    height: 4.3,
-    backgroundColor: "#ccc",
-    marginHorizontal: 5,
+    height: 50,
+    borderRadius: 8,
+    flexDirection: "row",
+    overflow: "hidden",
     position: "relative",
-    borderRadius: 4,
   },
-  biasDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: "#152B3F",
+  biasOverlay: {
     position: "absolute",
-    top: -4,
-  },
-  bottomSheetContent: {
-    flex: 1,
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 12,
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
-    padding: 20,
+  },
+  biasIconWrapper: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 4,
+    marginRight: 8,
+  },
+  highlights: {
+    gap: 10,
+    marginTop: 10,
+  },
+  blue: {
+    backgroundColor: "rgba(59,130,246,0.15)",
+    padding: 10,
+    borderRadius: 6,
+    fontSize: 14,
+  },
+  red: {
+    backgroundColor: "rgba(239,68,68,0.15)",
+    padding: 10,
+    borderRadius: 6,
+    fontSize: 14,
   },
   errorContainer: {
-    backgroundColor: "#ffebee",
     padding: 15,
     borderRadius: 8,
     marginTop: 20,
     width: "90%",
     borderWidth: 1,
-    borderColor: "#ffcdd2",
   },
   errorText: {
-    color: "#c62828",
     fontSize: 16,
     fontWeight: "bold",
     marginBottom: 8,
   },
   errorSubtext: {
-    color: "#b71c1c",
     fontSize: 14,
+  },
+  content: {
+    paddingTop: 8,
   },
 });
