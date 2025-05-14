@@ -9,6 +9,13 @@ from app.db import get_article_by_url, increment_article_read_count, add_article
 modal_summarize = modal.Function.from_name("newsly-modal-test", "summarize")
 modal_political_bias = modal.Function.from_name("newsly-modal-test", "political_bias")
 
+async def generate_explanation(predicted_bias: str, probabilities: dict):
+    explanation = f"This article leans {predicted_bias} because: "
+    if predicted_bias == "left":
+        explanation += "It emphasizes social justice, government intervention, and progressive policies."
+    elif predicted_bias == "right":
+        explanation += "It focuses on individual responsibility, limited government, and traditional values."
+    return explanation
 
 async def analyze_article(article: Article):
     """
@@ -20,14 +27,41 @@ async def analyze_article(article: Article):
     bias = modal_political_bias.remote.aio(article.text)
     summary, bias = await asyncio.gather(summary, bias)
 
+
     topics = await extract_topics(article.text)
     contextualization = await contextualize_article(article.text, topics)
 
+    predicted_bias = bias.get("predicted_bias", "unknown")
+    probabilities = bias.get("probabilities", {})
+    explanation = bias.get("explanation", "No explanation available")
+
+        # Generate explanation
+    explanation = f"This article leans {predicted_bias} because: "
+    if predicted_bias == "left":
+        explanation += "It emphasizes social justice, government intervention, and progressive policies."
+    elif predicted_bias == "right":
+        explanation += "It focuses on individual responsibility, limited government, and traditional values."
+    else:
+        explanation += "It presents a balanced view with consideration of multiple perspectives."
+
+    print(f"Generated explanation: {explanation}")
+
+    bias_data = {
+        "predicted_bias": predicted_bias,
+        "explanation": explanation,
+        "probabilities": probabilities
+    }
+
+    print("Processed bias_data:", bias_data)
+
     return {
         "summary": summary,
-        "bias": bias,
+        "bias": bias_data["predicted_bias"],
+        "bias_explanation": bias_data["explanation"],
+        "bias_probabilities": bias_data["probabilities"],
         "topics": topics,
-        "contextualization": contextualization
+        "contextualization": contextualization, 
+        "explanation": explanation
     }
 
 
