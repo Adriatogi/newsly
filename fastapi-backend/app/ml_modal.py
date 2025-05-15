@@ -59,7 +59,7 @@ def summarize(text: str) -> str:
     volumes={"/root/.cache/huggingface": hf_cache_vol},
     scaledown_window=IDLE_TIMEOUT,
 )
-async def political_bias(text: str) -> dict:
+async def political_lean(text: str) -> dict:
     from transformers import AutoTokenizer, AutoModelForSequenceClassification
     import torch
 
@@ -81,7 +81,7 @@ async def political_bias(text: str) -> dict:
     probabilities = raw_probabilities[0].tolist()
 
     class_labels = ["left", "center", "right"]
-    predicted_bias = class_labels[predicted_class]
+    predicted_lean = class_labels[predicted_class]
 
     data = {
         "probabilities": {
@@ -89,7 +89,7 @@ async def political_bias(text: str) -> dict:
             "center": probabilities[1],
             "right": probabilities[2],
         },
-        "predicted_bias": predicted_bias,
+        "predicted_lean": predicted_lean,
     }
     print("data:", data)
     return data
