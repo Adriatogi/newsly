@@ -33,7 +33,7 @@ async def bias_explanation(text: str, predicted_bias: str, probabilities: dict):
         Based on the article text, explain why it was classified as {predicted_bias} leaning.
         Focus on specific examples from the text and explain the reasoning.
         If it enriches the explanation, pull from the model's confidence in this classification given
-        {probabilities[predicted_bias]:.2f}, but don't get too technical/verbose. 
+        {probabilities[predicted_bias]:.2f}, but don't mention it directly or get too technical/verbose. 
 
         Article text:
         {text}
@@ -47,7 +47,7 @@ async def bias_explanation(text: str, predicted_bias: str, probabilities: dict):
         Based on the article text, explain why it was classified as {predicted_bias} leaning.
         Focus on specific examples from the text and explain the reasoning.
         If it enriches the explanation, pull from the model's confidence in this classification given
-        {probabilities[predicted_bias]:.2f}, but don't get too technical/verbose. 
+        {probabilities[predicted_bias]:.2f}, but don't mention it directly or get too technical/verbose. 
 
         Article text:
         {text}
