@@ -96,7 +96,6 @@ export default function App() {
         username: editUsername,
         full_name: editFullName,
         avatar_url: editAvatarUrl,
-        updated_at: new Date(),
       };
 
       const { error } = await supabase.from("profiles").upsert(updates);
