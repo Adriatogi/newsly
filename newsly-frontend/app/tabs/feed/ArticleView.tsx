@@ -17,9 +17,19 @@ if (Platform.OS === "android")
   UIManager.setLayoutAnimationEnabledExperimental?.(true);
 
 export default function ArticleView() {
-  const { title, summary, biasScore } = useLocalSearchParams();
+  const {
+    title,
+    summary,
+    biasScore,
+    historicalContext,
+    logicalFallacies,
+    biasAnalysis,
+  } = useLocalSearchParams();
   const bias = Math.max(-1, Math.min(1, parseFloat(biasScore as string) || 0));
   const [sections, setSections] = useState<{ [k: string]: boolean }>({});
+  const biasAnalysisMap = new Map<string, string>(
+    JSON.parse(biasAnalysis as string)
+  );
 
   const toggleSection = (k: string) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -28,7 +38,7 @@ export default function ArticleView() {
 
   const isDark = useColorScheme() === "dark";
   const s = styles(isDark);
-  const ICONS: { [k: string]: React.ReactNode } = {
+  const ICONS: { [k: string]: React.ReactNode | null } = {
     "Political Bias Analysis": null, // handled separately
     "Historical Context": (
       <View style={s.biasIconWrapper}>
@@ -85,6 +95,21 @@ export default function ArticleView() {
     </Pressable>
   );
 
+  const getSectionContent = (label: string) => {
+    switch (label) {
+      case "Historical Context":
+        return historicalContext as string;
+      case "Logical Fallacies":
+        return logicalFallacies as string;
+      case "Political Bias Analysis":
+        return Array.from(biasAnalysisMap.entries())
+          .map(([quote, color]) => `"${quote}" (${color})`)
+          .join("\n\n");
+      default:
+        return "";
+    }
+  };
+
   return (
     <ScrollView contentContainerStyle={s.container}>
       <View style={s.box}>
@@ -100,12 +125,16 @@ export default function ArticleView() {
                   {renderBiasBar()}
                   {sections[label] && (
                     <View style={s.highlights}>
-                      <Text style={s.blue}>
-                        "Government-led initiatives in space..."
-                      </Text>
-                      <Text style={s.red}>
-                        "Critics argue that excessive federal funding..."
-                      </Text>
+                      {Array.from(biasAnalysisMap.entries()).map(
+                        ([quote, color]) => (
+                          <Text
+                            key={quote}
+                            style={color === "blue" ? s.blue : s.red}
+                          >
+                            {`"${quote}"`}
+                          </Text>
+                        )
+                      )}
                     </View>
                   )}
                 </>
@@ -117,16 +146,14 @@ export default function ArticleView() {
                   >
                     <View style={s.row}>
                       <View style={s.iconRow}>
-                        {ICONS[label]}
+                        {ICONS[label as keyof typeof ICONS]}
                         <Text style={s.label}> {label}</Text>
                       </View>
                       <Text style={s.caret}>{sections[label] ? "˄" : "˅"}</Text>
                     </View>
                   </Pressable>
                   {sections[label] && (
-                    <Text style={s.body}>
-                      Lorem ipsum dolor sit amet, consectetur adipiscing elit...
-                    </Text>
+                    <Text style={s.body}>{getSectionContent(label)}</Text>
                   )}
                 </>
               )}

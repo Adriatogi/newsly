@@ -41,6 +41,11 @@ const Feed: React.FC = () => {
         title: article.title,
         summary: article.summary,
         biasScore: article.biasScore.toString(),
+        historicalContext: article.historicalContext,
+        logicalFallacies: article.logicalFallacies,
+        biasAnalysis: JSON.stringify(
+          Array.from(article.biasAnalysis.entries())
+        ),
       },
     });
   };
