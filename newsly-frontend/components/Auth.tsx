@@ -29,17 +29,33 @@ export default function Auth() {
   }
   async function signUpWithEmail() {
     setLoading(true);
-    const {
-      data: { session },
-      error,
-    } = await supabase.auth.signUp({
-      email: email,
-      password: password,
+
+    const { error, data } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          username: email.split("@")[0],
+          full_name: email.split("@")[0],
+          avatar_url: null,
+        },
+      },
     });
-    if (error) Alert.alert(error.message);
-    if (!session)
+
+    if (error) {
+      Alert.alert(error.message);
+      setLoading(false);
+      return;
+    }
+
+    if (data?.user?.id) {
       Alert.alert("Please check your inbox for email verification!");
+      setLoading(false);
+      return;
+    }
+
     setLoading(false);
+
   }
   return (
     <View style={styles.container}>
