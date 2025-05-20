@@ -37,6 +37,10 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "fonts": {
+      "NewslyHeader": "./assets/fonts/NewslyHeader.ttf",
+      "NewslyHeader-Bold": "./assets/fonts/NewslyHeader-Bold.ttf"
     }
   }
 }

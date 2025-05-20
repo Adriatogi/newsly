@@ -2,40 +2,16 @@ from newspaper import Article
 import modal
 from datetime import datetime
 from urllib.parse import urlparse, urlunparse
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import json
 import re
 import os
-
-
+from pydantic import BaseModel, ValidationError
+from app.newsly_types import NewslyArticle, LogicalFallacyComplete
 modal_summarize = modal.Function.from_name("newsly-modal-test", "summarize")
 modal_political_bias = modal.Function.from_name("newsly-modal-test", "political_bias")
 
 TEST = int(os.environ.get("TEST", "0"))
-
-
-# TODO: move this dataclass to a different file
-@dataclass
-class NewslyArticle:
-    text: str
-    authors: list[str]
-    publish_date: datetime
-    top_image: str
-    movies: list[str]
-    summary: str
-    bias: str
-
-    def to_dict(self):
-        return {
-            "text": self.text,
-            "authors": self.authors,
-            "publish_date": self.publish_date,
-            "top_image": self.top_image,
-            "movies": self.movies,
-            "summary": self.summary,
-            "bias": self.bias,
-        }
-
 
 def normalize_url(url: str) -> str:
     """
@@ -82,10 +58,10 @@ def extract_json(text: str):
             pass
 
         # If all parsing attempts fail
-        return {"answer": f"Failed to parse response as JSON. Original text: {text}"}
+        return None
 
 
-def parse_article(url: str):
+def parse_article(url: str) -> NewslyArticle:
     """
     Parse an article from the given URL.
 
@@ -106,17 +82,22 @@ def parse_article(url: str):
     article = Article(url)
     article.download()
     article.parse()
+    article.nlp()
 
     # str readable date
     date = article.publish_date
     date = date.isoformat()
 
     return NewslyArticle(
+        url=url,
+        title=article.title,
         text=article.text,
         authors=article.authors,
-        publish_date=date,
-        top_image=article.top_image,
-        movies=article.movies,
-        summary="",
-        bias="",
+        image_url=article.top_image,
+        published_date=date,
+        last_analyzed_at=datetime.now().isoformat(),
+        source_url=url,
+        keywords=article.keywords or [],
+        images=article.images or [],
+        movies=article.movies or [],
     )

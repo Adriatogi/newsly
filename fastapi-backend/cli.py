@@ -5,6 +5,8 @@ import click
 from app.server import process_article_db, analyze_article
 import app.utils as utils
 from app.utils import parse_article
+from app.ml_newsly import get_logical_fallacies
+import dataclasses
 
 async def process_article_wrapper(url, cache=True):
     return await process_article_db(url, cache=cache)
@@ -75,6 +77,31 @@ def analyze(url, json_output, test):
     if json_output:
         click.echo(json.dumps(result, indent=2))
 
+
+@cli.command()
+@click.argument("url")
+@click.option("--json-output", is_flag=True, help="Output as JSON")
+@click.option("--test", is_flag=True, help="Run in test mode")
+@click.option("--sequential", is_flag=True, help="Run sequentially")
+def get_logical(url, json_output, test, sequential):
+
+    if test:
+        utils.TEST = 1
+        print("Test mode enabled")
+
+    article = parse_article(url)
+    print("parsed article")
+    if not article:
+        raise click.ClickException("Failed to fetch or parse the URL")
+    
+    text = article.text
+    result = asyncio.run(get_logical_fallacies(text, sequential=sequential))
+
+    if json_output:
+        # Convert each LogicalFallacies object to a dict
+        serializable_result = dataclasses.asdict(result)
+        click.echo(json.dumps(serializable_result, indent=2))
+    
 
 if __name__ == "__main__":
     cli()
