@@ -39,20 +39,6 @@ export default function FeedLayout() {
             </Text>
           </View>
         ),
-        headerLeft: () => (
-          <TouchableOpacity
-            onPress={() => {
-              /* TODO: open menu */
-            }}
-            style={{ marginLeft: 0 }}
-          >
-            <Icon
-              name="menu-outline"
-              size={24}
-              color={isDark ? "#fff" : "#000"}
-            />
-          </TouchableOpacity>
-        ),
         headerRight: () => (
           <View
             style={{
