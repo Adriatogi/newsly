@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import {
 import { useRouter } from "expo-router";
 import { NewsArticle, fetchArticles } from "../../../lib/articles";
 import { NewsCard } from "../../../components/NewsCard";
+import { SearchContext } from "./_layout";
 
 const Feed: React.FC = () => {
   const router = useRouter();
@@ -22,6 +23,7 @@ const Feed: React.FC = () => {
   const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { searchQuery } = useContext(SearchContext);
 
   useEffect(() => {
     loadArticles();
@@ -47,11 +49,24 @@ const Feed: React.FC = () => {
     ...new Set(articles.flatMap((article) => article.topics)),
   ];
 
-  // Filter articles based on selected category
-  const filteredArticles =
-    activeCategory === "All"
-      ? articles
-      : articles.filter((article) => article.topics.includes(activeCategory));
+  // Filter articles based on selected category and search query
+  const filteredArticles = articles
+    .filter(
+      (article) =>
+        activeCategory === "All" || article.topics.includes(activeCategory)
+    )
+    .filter((article) => {
+      if (!searchQuery) return true;
+      const query = searchQuery.toLowerCase();
+      return (
+        article.title.toLowerCase().includes(query) ||
+        article.summary.toLowerCase().includes(query) ||
+        article.authors.some((author) =>
+          author.toLowerCase().includes(query)
+        ) ||
+        article.topics.some((topic) => topic.toLowerCase().includes(query))
+      );
+    });
 
   const handleArticlePress = (article: NewsArticle) => {
     router.push({
@@ -147,24 +162,35 @@ const Feed: React.FC = () => {
         </View>
 
         <View style={styles.newsContainer}>
-          {filteredArticles.map((article) => (
-            <TouchableOpacity
-              key={article.id}
-              onPress={() => handleArticlePress(article)}
+          {filteredArticles.length === 0 ? (
+            <Text
+              style={[
+                styles.noResultsText,
+                { color: isDark ? "#EDEDED" : "#152B3F" },
+              ]}
             >
-              <NewsCard
-                title={article.title}
-                imageUrl={article.image_url}
-                reads={article.read_count}
-                publishDate={article.published_date}
-                shadowColor="#000"
-                shadowOpacity={0.15}
-                biasScore={article.bias.predicted_bias}
-                category={article.topics[0] || "Uncategorized"}
-                author={article.authors[0] || "Unknown Author"}
-              />
-            </TouchableOpacity>
-          ))}
+              No articles found matching your search
+            </Text>
+          ) : (
+            filteredArticles.map((article) => (
+              <TouchableOpacity
+                key={article.id}
+                onPress={() => handleArticlePress(article)}
+              >
+                <NewsCard
+                  title={article.title}
+                  imageUrl={article.image_url}
+                  reads={article.read_count}
+                  publishDate={article.published_date}
+                  shadowColor="#000"
+                  shadowOpacity={0.15}
+                  biasScore={article.bias.predicted_bias}
+                  category={article.topics[0] || "Uncategorized"}
+                  author={article.authors[0] || "Unknown Author"}
+                />
+              </TouchableOpacity>
+            ))
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -232,6 +258,11 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "600",
+  },
+  noResultsText: {
+    fontSize: 16,
+    textAlign: "center",
+    marginTop: 20,
   },
 });
 

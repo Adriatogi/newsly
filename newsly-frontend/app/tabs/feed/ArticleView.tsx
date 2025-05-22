@@ -9,6 +9,7 @@ import {
   Platform,
   UIManager,
   useColorScheme,
+  Linking,
 } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
@@ -191,10 +192,40 @@ export default function ArticleView() {
     );
   };
 
+  const handleSourcePress = async () => {
+    if (source_url) {
+      try {
+        await Linking.openURL(source_url as string);
+      } catch (err) {
+        console.error("Error opening URL:", err);
+      }
+    }
+  };
+
   return (
     <ScrollView contentContainerStyle={s.container}>
       <View style={s.box}>
         <Text style={s.title}>{title}</Text>
+
+        {/* Source URL Section */}
+        <Pressable style={s.sourceContainer} onPress={handleSourcePress}>
+          <View style={s.sourceContent}>
+            <Feather
+              name="external-link"
+              size={16}
+              color={isDark ? "#EDEDED" : "#152B3F"}
+            />
+            <Text style={s.sourceText} numberOfLines={1}>
+              {source_url}
+            </Text>
+          </View>
+          <Feather
+            name="chevron-right"
+            size={16}
+            color={isDark ? "#EDEDED" : "#152B3F"}
+          />
+        </Pressable>
+
         <Text style={s.sectionLabel}>Summary</Text>
         <Text style={s.summary}>{summary}</Text>
 
@@ -240,9 +271,18 @@ export default function ArticleView() {
           {parsedLogicalFallacies && (
             <View style={s.fallaciesContainer}>
               <Text style={s.sectionLabel}>Logical Fallacies Analysis</Text>
-              {Object.entries(parsedLogicalFallacies).map(([type, category]) =>
-                renderFallacySection(type, category)
-              )}
+              {/* Render Good Sources first if it exists */}
+              {parsedLogicalFallacies.good_sources &&
+                renderFallacySection(
+                  "good_sources",
+                  parsedLogicalFallacies.good_sources
+                )}
+              {/* Render other fallacies */}
+              {Object.entries(parsedLogicalFallacies)
+                .filter(([type]) => type !== "good_sources")
+                .map(([type, category]) =>
+                  renderFallacySection(type, category)
+                )}
             </View>
           )}
         </View>
@@ -457,5 +497,26 @@ const styles = (dark: boolean) =>
     explanationText: {
       fontSize: 14,
       color: dark ? "#EDEDED" : "#152B3F",
+    },
+    sourceContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      backgroundColor: dark ? "#1A2B3F" : "#F5F5F5",
+      padding: 12,
+      borderRadius: 8,
+      marginBottom: 16,
+    },
+    sourceContent: {
+      flexDirection: "row",
+      alignItems: "center",
+      flex: 1,
+      marginRight: 8,
+    },
+    sourceText: {
+      fontSize: 14,
+      color: dark ? "#EDEDED" : "#152B3F",
+      marginLeft: 8,
+      flex: 1,
     },
   });
