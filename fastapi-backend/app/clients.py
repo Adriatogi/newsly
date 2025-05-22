@@ -1,8 +1,12 @@
 import os
 import time
 import requests
+import random
 
-def generate_together(model, messages, max_tokens=1024, temperature=0.7, response_format=None, **kwargs):
+
+def generate_together(
+    model, messages, max_tokens=1024, temperature=0.7, response_format=None, **kwargs
+):
     output = None
 
     key = os.environ.get("TOGETHER_API_KEY")
@@ -23,7 +27,9 @@ def generate_together(model, messages, max_tokens=1024, temperature=0.7, respons
                     "max_tokens": max_tokens,
                     "temperature": (temperature if temperature > 1e-4 else 0),
                     "messages": messages,
-                    "response_format": str if response_format is None else response_format,
+                    "response_format": (
+                        str if response_format is None else response_format
+                    ),
                 },
                 headers={
                     "Authorization": f"Bearer {key}",
@@ -44,10 +50,12 @@ def generate_together(model, messages, max_tokens=1024, temperature=0.7, respons
         except Exception as e:
             response = "failed before response" if res is None else res
             print(f"{e} on response: {response}")
-            print(f"Retry in {sleep_time}s..")
-            time.sleep(sleep_time)
+            random_multiplier = random.uniform(0.5, 1.5)
+            # randomize the sleep time to avoid rate limiting
+            print(f"Retry in {sleep_time * random_multiplier}s..")
+            time.sleep(sleep_time * random_multiplier)
 
     if output is None:
         return None
-    
+
     return output
