@@ -64,7 +64,7 @@ function CustomHeader({
               letterSpacing: 1,
             }}
           >
-            Newsly
+            NEWSLY
           </Text>
         )}
         {/* Search bar or icon */}

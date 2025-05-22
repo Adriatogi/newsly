@@ -187,6 +187,7 @@ const Feed: React.FC = () => {
                   biasScore={article.bias.predicted_bias}
                   category={article.topics[0] || "Uncategorized"}
                   author={article.authors[0] || "Unknown Author"}
+                  newsSource={article.source_url}
                 />
               </TouchableOpacity>
             ))
@@ -230,7 +231,8 @@ const styles = StyleSheet.create({
   },
   newsContainer: {
     gap: 16,
-    paddingHorizontal: 20,
+    paddingHorizontal: 12,
+
   },
   loadingContainer: {
     flex: 1,
