@@ -110,7 +110,7 @@ function CustomHeader({
                 {searchQuery.length > 0 && (
                   <TouchableOpacity
                     onPress={() => setSearchQuery("")}
-                    style={{ padding: 8}}
+                    style={{ padding: 8 }}
                   >
                     <Icon
                       name="close"
@@ -187,23 +187,24 @@ export default function FeedLayout() {
 
   return (
     <SearchContext.Provider value={{ searchQuery, setSearchQuery }}>
-      <Stack
-        screenOptions={{
-          header: () => (
-            <CustomHeader
-              isSearchVisible={isSearchVisible}
-              openSearch={openSearch}
-              closeSearch={closeSearch}
-              searchBarWidth={searchBarWidth}
-              searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
-              searchInputRef={searchInputRef}
-              isDark={isDark}
-            />
-          ),
-        }}
-      >
-        <Stack.Screen name="index" />
+      <Stack>
+        <Stack.Screen
+          name="index"
+          options={{
+            header: () => (
+              <CustomHeader
+                isSearchVisible={isSearchVisible}
+                openSearch={openSearch}
+                closeSearch={closeSearch}
+                searchBarWidth={searchBarWidth}
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+                searchInputRef={searchInputRef}
+                isDark={isDark}
+              />
+            ),
+          }}
+        />
         <Stack.Screen
           name="ArticleView"
           options={{
@@ -216,21 +217,6 @@ export default function FeedLayout() {
             headerTintColor: isDark ? "#152B3F" : "#FFFFF4",
             headerLeft: undefined,
             headerRight: undefined,
-            headerTitle: () => (
-              <View style={{ flexDirection: "row", justifyContent: "center" }}>
-                <Text
-                  style={{
-                    fontSize: 20,
-                    color: isDark ? "#152B3F" : "#FFFFF4",
-                    fontFamily: "NewslyHeader-Bold",
-                    fontWeight: "700",
-                    letterSpacing: 0.5,
-                  }}
-                >
-                  Article details
-                </Text>
-              </View>
-            ),
           }}
         />
       </Stack>
