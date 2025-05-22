@@ -445,8 +445,7 @@ async def get_logical_fallacy_response(
     for fallacy in logical_fallacies:
 
         # check that quote actually exists in the text
-        if fallacy.quote not in text:
-            print(f"Quote {fallacy.quote} not found in text. Skipping...")
+        if fallacy.quote is None:
             continue
 
         logical_fallacies_complete.append(
