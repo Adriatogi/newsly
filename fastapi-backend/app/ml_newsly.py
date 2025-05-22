@@ -25,6 +25,37 @@ except ImportError:
     print("PyTorch not installed, using CPU")
 
 
+async def bias_explanation(text: str, predicted_bias: str, bias_probability: float) -> str:
+    from transformers import pipeline, AutoTokenizer
+
+    print("Starting bias explanation generation...")
+
+    # Load tokenizer to check input length
+    tokenizer = AutoTokenizer.from_pretrained("google/flan-t5-large")
+    tokens = tokenizer.encode(text)
+    
+    # Truncate text if it's too long (leave room for the prompt)
+    max_input_tokens = 200  # Reduced to ensure we're well under 512 token limit
+    if len(tokens) > max_input_tokens:
+        text = tokenizer.decode(tokens[:max_input_tokens])
+
+    explainer = pipeline("text2text-generation", model="google/flan-t5-large", device=0)
+    prompt = f"""Analyze {predicted_bias} bias ({bias_probability:.2f} confidence):
+
+    1. Quote examples
+    2. Explain each quote:
+    - Word choice
+    - Facts
+    - Tone
+
+    Article:
+    {text}
+
+Analysis:"""
+    explanation = explainer(prompt, max_new_tokens=1024, do_sample=True, temperature=0.7)
+    result = explanation[0].get("generated_text", explanation[0].get("text", ""))
+    print("\nGenerated explanation:", result)
+    return result
 
 async def political_bias(text: str) -> dict:
 

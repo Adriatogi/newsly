@@ -88,6 +88,7 @@ class NewslyArticle:
     # fields from analysis
     summary: str = ""
     bias: str = ""
+    bias_explanation: str = ""
     topics: list[str] = field(default_factory=list)
     contextualization: str = ""
     logical_fallacies: LogicalFallacyComplete = field(
