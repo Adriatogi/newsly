@@ -10,10 +10,10 @@ The response MUST follow this exact JSON schema:
 {{
   "logical_fallacies": [
     {{
-      "reason": "detailed reason, referencing criteria 1-3",
-      "quote": "exact quote from text",
-      "rating": integer between 1-5,
-      "explanation": "This may be... (short but specific reason)"
+      "quote": "exact quote from text of the ad hominem",
+      "reason": "detailed reason, referencing criteria 1-3, why it is an ad hominem",
+      "explanation": "An explanation of how confident it is in it's decision, based on the criteria",
+      "rating": integer between 1-5 of how confident it is in it's decision,
     }}, ...
   ]
 }}
@@ -35,10 +35,10 @@ The response MUST follow this exact JSON schema:
 {{
   "logical_fallacies": [
     {{
+      "quote": "exact quote from text of the fallacy",
       "reason": "detailed explanation of how the source is being discredited",
-      "quote": "exact quote from text",
-      "rating": integer between 1-5,
-      "explanation": "This may be... (short but specific reason)"
+      "explanation": "An explanation of how confident it is in it's decision",
+      "rating": integer between 1-5 of how confident it is in it's decision,
     }}, ...
   ]
 }}
@@ -60,10 +60,10 @@ The response MUST follow this exact JSON schema:
 {{
   "logical_fallacies": [
     {{
+      "quote": "exact quote from text of the fallacy",
       "reason": "detailed explanation of how emotions are being manipulated",
-      "quote": "exact quote from text",
-      "rating": integer between 1-5,
-      "explanation": "This may be... (short but specific reason)"
+      "explanation": "An explanation of how confident it is in it's decision",
+      "rating": integer between 1-5 of how confident it is in it's decision,
     }}, ...
   ]
 }}
@@ -88,10 +88,10 @@ The response MUST follow this exact JSON schema:
 {{
   "logical_fallacies": [
     {{
-      "reason": "explanation of how intermediate options are excluded",
-      "quote": "exact quote from text",
-      "rating": integer between 1-5,
-      "explanation": "This may be... (short but specific reason)"
+      "quote": "exact quote from text of the fallacy",
+      "reason": "detailed explanation of how emotions are being manipulated, referencing key points.",
+      "explanation": "An explanation of how confident it is in it's decision",
+      "rating": integer between 1-5 of how confident it is in it's decision,
     }}, ...
   ]
 }}
@@ -105,6 +105,7 @@ Text to analyze:
 fear_mongering_fallacy = """
 Instructions: Identify any fear mongering in the text, where language unjustifiably incites fear about potential dire outcomes. Rate such instances from 1 (minimal) to 5 (extreme), considering:
 
+Criteria:
 - Context: Is the level of concern reasonable or exaggerated?
 - Intent: Is the aim to inform with evidence or to manipulate by inducing fear?
 - Evidence: Do the claims lack factual support?
@@ -115,10 +116,10 @@ The response MUST follow this exact JSON schema:
 {{
   "logical_fallacies": [
     {{
-      "reason": "explanation of how fear is being inappropriately induced",
-      "quote": "exact quote from text",
-      "rating": integer between 1-5,
-      "explanation": "This may be... (short but specific reason)"
+      "quote": "exact quote from text of the fallacy",
+      "reason": "detailed explanation of how emotions are being manipulated, referencing criteria 1-3",
+      "explanation": "An explanation of how confident it is in it's decision, based on the criteria",
+      "rating": integer between 1-5 of how confident it is in it's decision,
     }}, ...
   ]
 }}
@@ -138,10 +139,10 @@ The response MUST follow this exact JSON schema:
 {{
   "logical_fallacies": [
     {{
+      "quote": "exact quote from text of the good source",
       "reason": "explanation of why the source is reputable and valuable",
-      "quote": "exact quote from text",
-      "rating": integer between 1-5,
-      "explanation": "This may be... (short but specific reason)"
+      "explanation": "An explanation of how confident it is in it's decision",
+      "rating": integer between 1-5 of how confident it is in it's decision,
     }}, ...
   ]
 }}
@@ -163,10 +164,10 @@ The response MUST follow this exact JSON schema:
 {{
   "logical_fallacies": [
     {{
-      "reason": "explanation of the logical disconnect",
-      "quote": "exact quote from text",
-      "rating": integer between 1-5,
-      "explanation": "This may be... (short but specific reason)"
+      "quote": "exact quote from text of the non-sequitur",
+      "reason": "explanation of the non-sequitur",
+      "explanation": "An explanation of how confident it is in it's decision",
+      "rating": integer between 1-5 of how confident it is in it's decision,
     }}, ...
   ]
 }}
@@ -188,10 +189,10 @@ The response MUST follow this exact JSON schema:
 {{
   "logical_fallacies": [
     {{
+      "quote": "exact quote from text of presenting other side",
       "reason": "explanation of how the quote presents substantive arguments from both sides",
-      "quote": "exact quote from text",
-      "rating": integer between 1-5,
-      "explanation": "This may be... (short but specific reason)"
+      "explanation": "An explanation of how confident it is in it's decision",
+      "rating": integer between 1-5 of how confident it is in it's decision,
     }}, ...
   ]
 }}
@@ -216,10 +217,10 @@ The response MUST follow this exact JSON schema:
 {{
   "logical_fallacies": [
     {{
+      "quote": "exact quote from text of the scapegoating",
       "reason": "explanation of how blame is unjustifiably assigned",
-      "quote": "exact quote from text",
-      "rating": integer between 1-5,
-      "explanation": "This may be... (short but specific reason)"
+      "explanation": "An explanation of how confident it is in it's decision",
+      "rating": integer between 1-5 of how confident it is in it's decision,
     }}, ...
   ]
 }}
