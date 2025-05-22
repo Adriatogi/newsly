@@ -16,8 +16,8 @@ async def analyze_article_wrapper(url):
     article = parse_article(url)        
     if not article:
         raise click.ClickException("Failed to fetch or parse the URL")
-    return await analyze_article(article)
-    # return await analyze_article(url)
+    await analyze_article(article)
+    return article
 
 
 @click.group()
@@ -75,7 +75,40 @@ def analyze(url, json_output, test):
     result = asyncio.run(analyze_article_wrapper(url))
 
     if json_output:
-        click.echo(json.dumps(result, indent=2))
+        # Convert NewslyArticle to dict before JSON serialization
+        result_dict = dataclasses.asdict(result)
+        click.echo(json.dumps(result_dict, indent=2))
+    else:
+        # Print each field in a readable format
+        click.echo("\nArticle Analysis Results:")
+        click.echo("------------------------")
+        click.echo(f"Title: {result.title}")
+        click.echo(f"URL: {result.url}")
+        click.echo(f"Source: {result.source}")
+        click.echo(f"Date: {result.date}")
+        click.echo(f"Authors: {', '.join(result.authors)}")
+        click.echo("\nSummary:")
+        click.echo(result.summary)
+        click.echo("\nBias Analysis:")
+        click.echo(f"Predicted Bias: {result.bias['predicted_bias']}")
+        click.echo("Probabilities:")
+        for bias, prob in result.bias['probabilities'].items():
+            click.echo(f"  {bias}: {prob:.2%}")
+        click.echo("\nBias Explanation:")
+        click.echo(result.bias_explanation)
+        click.echo("\nTopics:")
+        for topic in result.topics:
+            click.echo(f"  - {topic}")
+        click.echo("\nContextualization:")
+        click.echo(result.contextualization)
+        click.echo("\nLogical Fallacies:")
+        for fallacy_type, fallacy_data in result.logical_fallacies.items():
+            click.echo(f"\n{fallacy_type}:")
+            click.echo(f"  Found: {fallacy_data['found']}")
+            if fallacy_data['found']:
+                click.echo(f"  Explanation: {fallacy_data['explanation']}")
+                if 'error' in fallacy_data:
+                    click.echo(f"  Error: {fallacy_data['error']}")
 
 
 @cli.command()
@@ -105,3 +138,4 @@ def get_logical(url, json_output, test, sequential):
 
 if __name__ == "__main__":
     cli()
+
