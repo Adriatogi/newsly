@@ -46,34 +46,41 @@ async def bias_explanation(text: str, predicted_bias: str, probabilities: dict):
     if device == "cuda":
         explainer = pipeline("text-generation", model="gpt2-medium")
         prompt = f"""
-        Based on the article text, explain why it was classified as {predicted_bias} leaning.
-        Focus on specific examples from the text and explain the reasoning.
-        If it enriches the explanation, pull from the model's confidence in this classification given
-        {probabilities[predicted_bias]:.2f}, but don't mention it directly or get too technical/verbose. 
+        You are an expert media analyst. Analyze this article and explain in detail why it was classified as {predicted_bias} leaning.
+        
+        Your analysis should:
+        1. Identify specific examples from the text that demonstrate {predicted_bias} bias
+        2. Explain how the language, framing, and content choices contribute to this bias
+        3. Note any loaded terms, selective facts, or narrative framing that supports this classification
+        4. Consider the model's confidence level of {probabilities[predicted_bias]:.2f} in your analysis
+        
+        Write a detailed, well-structured explanation that would help readers understand the bias classification.
+        Be specific and cite examples from the text.
 
         Article text:
         {text}
 
-        Explanation:
+        Detailed bias analysis:
         """
-        explanation = explainer(prompt, max_length=1024, do_sample=False)
+        explanation = explainer(prompt, max_length=512, do_sample=False)
         return explanation[0].get("generated_text", explanation[0].get("text", ""))
     else:
         prompt = f"""
-        Based on the article text, explain why it was classified as {predicted_bias} leaning.
-        Focus on specific examples from the text and explain the reasoning.
-        If it enriches the explanation, pull from the model's confidence in this classification given
-        {probabilities[predicted_bias]:.2f}, but don't mention it directly or get too technical/verbose. 
+        You are an expert media analyst. Analyze this article and explain in detail why it was classified as {predicted_bias} leaning.
+        
+        Your analysis should:
+        1. Identify specific examples from the text that demonstrate {predicted_bias} bias
+        2. Explain how the language, framing, and content choices contribute to this bias
+        3. Note any loaded terms, selective facts, or narrative framing that supports this classification
+        4. Consider the model's confidence level of {probabilities[predicted_bias]:.2f} in your analysis
+        
+        Write a detailed, well-structured explanation that would help readers understand the bias classification.
+        Be specific and cite examples from the text.
 
         Article text:
         {text}
 
-        Provide a clear explanation focusing on:
-        1. Key phrases or topics that indicate {predicted_bias} bias
-        2. The overall tone and perspective
-        3. Specific examples from the text
-
-        Explanation:
+        Detailed bias analysis:
         """
         messages = [
             {

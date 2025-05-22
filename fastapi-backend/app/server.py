@@ -50,6 +50,7 @@ async def analyze_article(article: NewslyArticle, no_modal: bool = NO_MODAL) -> 
         topics = modal_extract_topics.remote.aio(article.text)
         logical_fallacies = get_logical_fallacies(article.text)
         summary, bias, topics, logical_fallacies = await asyncio.gather(summary, bias, topics, logical_fallacies)
+        # bias explanation needs bias to be set
         bias_explanation_text = await modal_bias_explanation.remote.aio(article.text, bias["predicted_bias"], bias["probabilities"])
 
     # contextualizing depends on `topics` so we need to wait for it. Can't run async with other functions
