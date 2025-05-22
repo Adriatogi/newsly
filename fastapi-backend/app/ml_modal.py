@@ -63,35 +63,41 @@ async def political_bias(text: str) -> dict:
     from transformers import AutoTokenizer, AutoModelForSequenceClassification
     import torch
 
-    # Get the model and tokenizer
+    print("Starting political bias analysis...")
+
     tokenizer = AutoTokenizer.from_pretrained("bucketresearch/politicalBiasBERT")
     model = AutoModelForSequenceClassification.from_pretrained(
         "bucketresearch/politicalBiasBERT"
     )
 
-    print("model loaded")
+    print("Model loaded successfully")
 
     inputs = tokenizer(text, return_tensors="pt", truncation=True, max_length=512)
     outputs = model(**inputs)
     logits = outputs.logits
 
     raw_probabilities = torch.softmax(logits, dim=1)
-
     predicted_class = torch.argmax(raw_probabilities, dim=1).item()
     probabilities = raw_probabilities[0].tolist()
 
     class_labels = ["left", "center", "right"]
     predicted_bias = class_labels[predicted_class]
 
-    data = {
-        "probabilities": {
-            "left": probabilities[0],
-            "center": probabilities[1],
-            "right": probabilities[2],
-        },
-        "predicted_bias": predicted_bias,
+    print(f"Predicted bias: {predicted_bias}")
+    print(f"Raw probabilities: {probabilities}")
+
+    probabilities_dict = {
+        "left": float(probabilities[0]),
+        "center": float(probabilities[1]),
+        "right": float(probabilities[2])
     }
-    print("data:", data)
+
+    data = {
+        "probabilities": probabilities_dict,
+        "predicted_bias": str(predicted_bias)
+    }
+    
+    print("Final data structure being returned:", data)
     return data
 
 
@@ -145,3 +151,30 @@ async def contextualize_article(text: str, topics: list[str]) -> dict:
     return contextualization[0].get(
         "generated_text", contextualization[0].get("text", "")
     )
+
+
+@app.function(
+    gpu="L4",
+    image=image,
+    volumes={"/root/.cache/huggingface": hf_cache_vol},
+    scaledown_window=IDLE_TIMEOUT,
+)
+async def bias_explanation(text: str, predicted_bias: str, probabilities: dict) -> str:
+    from transformers import pipeline
+
+    print("Starting bias explanation generation...")
+
+    explainer = pipeline("text-generation", model="gpt2-medium")
+    prompt = f"""
+    Based on the article text, explain why it was classified as {predicted_bias} leaning.
+    Focus on specific examples from the text and explain the reasoning.
+    If it enriches the explanation, pull from the model's confidence in this classification given
+    {probabilities[predicted_bias]:.2f}, but don't mention it directly or get too technical/verbose. 
+
+    Article text:
+    {text}
+
+    Explanation:
+    """
+    explanation = explainer(prompt, max_length=1024, do_sample=False)
+    return explanation[0].get("generated_text", explanation[0].get("text", ""))

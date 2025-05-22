@@ -1,6 +1,8 @@
 import modal
 import asyncio
 from fastapi import HTTPException
+from newspaper import Article
+
 
 from app.ml_newsly import (
     llm_summarize,
@@ -8,6 +10,7 @@ from app.ml_newsly import (
     extract_topics,
     contextualize_article,
     get_logical_fallacies,
+    bias_explanation,
 )
 from app.utils import normalize_url, parse_article, NewslyArticle
 from app.db import (
@@ -23,6 +26,7 @@ modal_extract_topics = modal.Function.from_name("newsly-modal-test", "extract_to
 modal_contextualize_article = modal.Function.from_name(
     "newsly-modal-test", "contextualize_article"
 )
+modal_bias_explanation = modal.Function.from_name("newsly-modal-test", "bias_explanation")
 
 NO_MODAL = False
 
@@ -38,6 +42,7 @@ async def analyze_article(article: NewslyArticle, no_modal: bool = NO_MODAL) -> 
         bias = await political_bias(article.text)
         topics = await extract_topics(article.text)
         logical_fallacies = await get_logical_fallacies(article.text)
+        bias_explanation_text = await bias_explanation(article.text, bias["predicted_bias"], bias["probabilities"])
     else:
         print("Running modal")
         summary = modal_summarize.remote.aio(article.text)
@@ -45,6 +50,7 @@ async def analyze_article(article: NewslyArticle, no_modal: bool = NO_MODAL) -> 
         topics = modal_extract_topics.remote.aio(article.text)
         logical_fallacies = get_logical_fallacies(article.text)
         summary, bias, topics, logical_fallacies = await asyncio.gather(summary, bias, topics, logical_fallacies)
+        bias_explanation_text = await modal_bias_explanation.remote.aio(article.text, bias["predicted_bias"], bias["probabilities"])
 
     # contextualizing depends on `topics` so we need to wait for it. Can't run async with other functions
     contextualization = modal_contextualize_article.remote(
@@ -54,6 +60,7 @@ async def analyze_article(article: NewslyArticle, no_modal: bool = NO_MODAL) -> 
     # set the properties of the article to the result of the analysis
     article.summary = summary
     article.bias = bias
+    article.bias_explanation = bias_explanation_text
     article.topics = topics
     article.contextualization = contextualization
     article.logical_fallacies = logical_fallacies
