@@ -8,10 +8,12 @@ import re
 import os
 from pydantic import BaseModel, ValidationError
 from app.newsly_types import NewslyArticle, LogicalFallacyComplete
+
 modal_summarize = modal.Function.from_name("newsly-modal-test", "summarize")
 modal_political_bias = modal.Function.from_name("newsly-modal-test", "political_bias")
 
 TEST = int(os.environ.get("TEST", "0"))
+
 
 def normalize_url(url: str) -> str:
     """
@@ -82,7 +84,6 @@ def parse_article(url: str) -> NewslyArticle:
     article = Article(url)
     article.download()
     article.parse()
-    article.nlp()
 
     # str readable date
     date = article.publish_date
