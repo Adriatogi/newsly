@@ -1,5 +1,44 @@
 import React from "react";
-import { View, Text, StyleSheet, Image, useColorScheme } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Image,
+  useColorScheme,
+  Pressable,
+  Linking,
+} from "react-native";
+
+export const formatDate = (dateStr: string) => {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffTime = Math.abs(now.getTime() - date.getTime());
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) {
+    return "Today";
+  } else if (diffDays === 1) {
+    return "Yesterday";
+  } else if (diffDays < 7) {
+    return `${diffDays} days ago`;
+  } else {
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: date.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
+    });
+  }
+};
+
+const getDomainFromUrl = (url: string): string => {
+  try {
+    const domain = new URL(url).hostname;
+    // Remove 'www.' if present
+    return domain.replace(/^www\./, "");
+  } catch (error) {
+    return url; // Return original string if URL parsing fails
+  }
+};
 
 interface NewsCardProps {
   title: string;
@@ -8,22 +47,113 @@ interface NewsCardProps {
   publishDate: string;
   shadowColor?: string;
   shadowOpacity?: number;
-  biasScore?: number;
+  biasScore?: string;
   category: string;
   author: string;
+  newsSource: string;
 }
 
-const baseTriangle = {
-  position: "absolute",
-  bottom: -6,
-  width: 0,
-  height: 0,
-  borderLeftWidth: 5,
-  borderRightWidth: 5,
-  borderBottomWidth: 6,
-  borderLeftColor: "transparent",
-  borderRightColor: "transparent",
-  transform: [{ translateX: -5 }],
+export const NewsCard: React.FC<NewsCardProps> = ({
+  title,
+  imageUrl,
+  reads,
+  publishDate,
+  shadowColor = "#000",
+  shadowOpacity = 0.1,
+  biasScore = "center",
+  category,
+  author,
+  newsSource,
+}) => {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
+  const cardTheme = isDark ? darkCardStyles : lightCardStyles;
+
+  return (
+    <View style={[cardTheme.card, { shadowColor, shadowOpacity }]}>
+      <View style={cardTheme.imageWrapper}>
+        <Image
+          source={{ uri: imageUrl }}
+          style={cardTheme.image}
+          resizeMode="cover"
+        />
+        <View style={cardTheme.categoryTag}>
+          <Text style={cardTheme.categoryText}>{category}</Text>
+        </View>
+      </View>
+      <View style={cardTheme.textWrapper}>
+        <Text style={cardTheme.cardTitle}>{title}</Text>
+        <View style={cardTheme.metaContainer}>
+          <View style={cardTheme.metaContent}>
+            <View>
+              <Text style={cardTheme.authorText}>By {author}</Text>
+              <Text style={cardTheme.cardMeta}>
+                {formatDate(publishDate)} • {reads} reads
+              </Text>
+              <Pressable
+                onPress={() => Linking.openURL(newsSource)}
+                style={({ pressed }) => [
+                  cardTheme.sourceContainer,
+                  pressed && cardTheme.sourcePressed,
+                ]}
+              >
+                <Text style={cardTheme.sourceText}>
+                  {getDomainFromUrl(newsSource)}
+                </Text>
+              </Pressable>
+            </View>
+            <View style={cardTheme.biasIndicatorContainer}>
+              <View
+                style={[
+                  cardTheme.biasSquare,
+                  biasScore === "left" && cardTheme.activeLeftBias,
+                ]}
+              >
+                <Text
+                  style={[
+                    cardTheme.biasText,
+                    biasScore === "left" && cardTheme.activeLeftText,
+                  ]}
+                >
+                  L
+                </Text>
+              </View>
+              <View
+                style={[
+                  cardTheme.biasSquare,
+                  biasScore === "center" && cardTheme.activeCenterBias,
+                ]}
+              >
+                <Text
+                  style={[
+                    cardTheme.biasText,
+                    biasScore === "center" && cardTheme.activeCenterText,
+                  ]}
+                >
+                  C
+                </Text>
+              </View>
+              <View
+                style={[
+                  cardTheme.biasSquare,
+                  biasScore === "right" && cardTheme.activeRightBias,
+                ]}
+              >
+                <Text
+                  style={[
+                    cardTheme.biasText,
+                    biasScore === "right" && cardTheme.activeRightText,
+                  ]}
+                >
+                  R
+                </Text>
+              </View>
+            </View>
+          </View>
+        </View>
+      </View>
+    </View>
+  );
 };
 
 const lightCardStyles = StyleSheet.create({
@@ -70,6 +200,11 @@ const lightCardStyles = StyleSheet.create({
   metaContainer: {
     marginBottom: 6,
   },
+  metaContent: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-end",
+  },
   authorText: {
     fontSize: 14,
     color: "#152B3F",
@@ -79,45 +214,56 @@ const lightCardStyles = StyleSheet.create({
   cardMeta: {
     fontSize: 14,
     color: "#888",
+    marginBottom: 2,
   },
-  biasBarContainer: {
-    marginTop: 12,
-    paddingHorizontal: 0,
-    paddingVertical: 0,
-    borderRadius: 8,
-    position: "relative",
+  sourceContainer: {
+    alignSelf: "flex-start",
   },
-  biasBarBackground: {
+  sourcePressed: {
+    opacity: 0.7,
+  },
+  sourceText: {
+    fontSize: 14,
+    color: "#3b82f6",
+    fontWeight: "500",
+  },
+  biasIndicatorContainer: {
+    marginRight: 12,
     flexDirection: "row",
-    height: 10,
-    borderRadius: 5,
+    alignItems: "flex-end",
+    gap: 4,
+    marginBottom: 2,
+  },
+  biasSquare: {
+    width: 24,
+    height: 24,
+    borderRadius: 4,
     backgroundColor: "#e5e7eb",
-    overflow: "hidden",
+    justifyContent: "center",
+    alignItems: "center",
   },
-  biasBarUnified: {
-    flexDirection: "row",
-    height: 6,
-    borderRadius: 3,
-    overflow: "hidden",
-    position: "absolute",
-    top: 2,
-    left: 2,
-    right: 2,
+  activeLeftBias: {
+    backgroundColor: "#3b82f6",
   },
-  leftBias: { height: "100%", backgroundColor: "#3b82f6" },
-  rightBias: { height: "100%", backgroundColor: "#ef4444" },
-  triangle: {
-    position: "absolute",
-    bottom: -6,
-    width: 0,
-    height: 0,
-    borderLeftWidth: 5,
-    borderRightWidth: 5,
-    borderBottomWidth: 6,
-    borderLeftColor: "transparent",
-    borderRightColor: "transparent",
-    borderTopColor: "#152B3F",
-    transform: [{ translateX: -5 }],
+  activeCenterBias: {
+    backgroundColor: "#6b7280",
+  },
+  activeRightBias: {
+    backgroundColor: "#ef4444",
+  },
+  biasText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#152B3F",
+  },
+  activeLeftText: {
+    color: "#ffffff",
+  },
+  activeCenterText: {
+    color: "#ffffff",
+  },
+  activeRightText: {
+    color: "#ffffff",
   },
 });
 
@@ -137,84 +283,38 @@ const darkCardStyles = StyleSheet.create({
     ...lightCardStyles.categoryText,
     color: "#152B3F",
   },
-  biasBarContainer: {
-    ...lightCardStyles.biasBarContainer,
+  biasSquare: {
+    ...lightCardStyles.biasSquare,
     backgroundColor: "#1e2b3f",
   },
-  triangle: {
-    ...lightCardStyles.triangle,
-    borderTopColor: "#FFFFF4",
+  activeLeftBias: {
+    backgroundColor: "#3b82f6",
+  },
+  activeCenterBias: {
+    backgroundColor: "#6b7280",
+  },
+  activeRightBias: {
+    backgroundColor: "#ef4444",
+  },
+  biasText: {
+    ...lightCardStyles.biasText,
+    color: "#EDEDED",
+  },
+  activeLeftText: {
+    color: "#ffffff",
+  },
+  activeCenterText: {
+    color: "#ffffff",
+  },
+  activeRightText: {
+    color: "#ffffff",
   },
   authorText: {
     ...lightCardStyles.authorText,
     color: "#EDEDED",
   },
+  sourceText: {
+    ...lightCardStyles.sourceText,
+    color: "#60a5fa",
+  },
 });
-
-export const NewsCard: React.FC<NewsCardProps> = ({
-  title,
-  imageUrl,
-  reads,
-  publishDate,
-  shadowColor = "#000",
-  shadowOpacity = 0.1,
-  biasScore = 0,
-  category,
-  author,
-}) => {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
-  const normalizedScore = Math.max(-1, Math.min(1, biasScore));
-  const cardTheme = isDark ? darkCardStyles : lightCardStyles;
-
-  return (
-    <View style={[cardTheme.card, { shadowColor, shadowOpacity }]}>
-      <View style={cardTheme.imageWrapper}>
-        <Image
-          source={{ uri: imageUrl }}
-          style={cardTheme.image}
-          resizeMode="cover"
-        />
-        <View style={cardTheme.categoryTag}>
-          <Text style={cardTheme.categoryText}>{category}</Text>
-        </View>
-      </View>
-      <View style={cardTheme.textWrapper}>
-        <Text style={cardTheme.cardTitle}>{title}</Text>
-        <View style={cardTheme.metaContainer}>
-          <Text style={cardTheme.authorText}>By {author}</Text>
-          <Text style={cardTheme.cardMeta}>
-            {publishDate} • {reads} reads
-          </Text>
-        </View>
-
-        <View style={cardTheme.biasBarContainer}>
-          <View style={cardTheme.biasBarBackground}>
-            <View style={cardTheme.biasBarUnified}>
-              <View
-                style={[
-                  cardTheme.leftBias,
-                  { flex: (1 - normalizedScore) / 2 },
-                ]}
-              />
-              <View
-                style={[
-                  cardTheme.rightBias,
-                  { flex: (1 + normalizedScore) / 2 },
-                ]}
-              />
-            </View>
-          </View>
-          <View
-            style={[
-              cardTheme.triangle,
-              {
-                left: `${((1 - normalizedScore) / 2) * 100}%`,
-              },
-            ]}
-          />
-        </View>
-      </View>
-    </View>
-  );
-};
