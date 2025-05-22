@@ -96,6 +96,7 @@ class NewslyArticle:
     logical_fallacies: LogicalFallacyComplete = field(
         default_factory=LogicalFallacyComplete
     )
+    bias_explanation: str = ""
 
     # fields for the database
     # These fields are set by the database and should not be set manually
