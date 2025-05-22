@@ -1,3 +1,4 @@
+from fastapi import HTTPException
 from newspaper import Article
 import modal
 from datetime import datetime
@@ -6,6 +7,7 @@ from dataclasses import fields
 import json
 import re
 import os
+from newspaper.exceptions import ArticleException
 from pydantic import BaseModel, ValidationError
 from app.newsly_types import NewslyArticle, LogicalFallacyComplete
 
@@ -95,9 +97,18 @@ def parse_article(url: str) -> NewslyArticle:
     Returns:
         Article: An object containing the parsed article data.
     """
-    article = Article(url)
-    article.download()
-    article.parse()
+    try:
+        article = Article(url)
+        article.download()
+        article.parse()
+    except Exception as e:
+        if isinstance(e, ArticleException):
+            raise HTTPException(
+                status_code=404, detail="Article not found or not supported"
+            )
+        else:
+            print("Error parsing article:", e)
+            raise HTTPException(status_code=500, detail="Error parsing article")
 
     # str readable date
     date = article.publish_date
