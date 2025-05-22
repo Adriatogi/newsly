@@ -55,21 +55,6 @@ export default function ArticleView() {
   const [sections, setSections] = useState<{ [k: string]: boolean }>({});
   const biasAnalysisMap = new Map<string, string>();
 
-  // Convert predicted bias string to number
-  const getBiasNumber = (biasStr: string) => {
-    switch (biasStr.toLowerCase()) {
-      case "left":
-        return -1;
-      case "center":
-        return 0;
-      case "right":
-        return 1;
-      default:
-        return 0;
-    }
-  };
-
-  const bias = getBiasNumber(biasScore as string);
   const isDark = useColorScheme() === "dark";
   const s = styles(isDark);
 
@@ -86,48 +71,50 @@ export default function ArticleView() {
     setSections((p) => ({ ...p, [k]: !p[k] }));
   };
 
-  const renderBiasBar = () => (
-    <Pressable onPress={() => toggleSection("Political Bias Analysis")}>
-      <View
-        style={{
-          ...s.biasBar,
-          flexDirection: "row",
-          borderRadius: 8,
-          overflow: "hidden",
-        }}
-      >
+  const renderBiasBar = () => {
+    let biasColor = "#6b7280"; // Default gray for center
+    if (biasScore === "left") {
+      biasColor = "#3b82f6"; // Blue for left
+    } else if (biasScore === "right") {
+      biasColor = "#ef4444"; // Red for right
+    }
+
+    return (
+      <Pressable onPress={() => toggleSection("Political Bias Analysis")}>
         <View
           style={{
-            flex: (1 - bias) / 2,
-            backgroundColor: "#3b82f6",
-            height: "100%",
+            ...s.biasBar,
+            flexDirection: "row",
+            borderRadius: 8,
+            overflow: "hidden",
           }}
-        />
-        <View
-          style={{
-            flex: (1 + bias) / 2,
-            backgroundColor: "#ef4444",
-            height: "100%",
-          }}
-        />
-        <View style={s.biasOverlay}>
-          <View style={s.iconRow}>
-            <View style={s.biasIconWrapper}>
-              <MaterialCommunityIcons
-                name="scale-balance"
-                size={18}
-                color="#D74D41"
-              />
+        >
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: biasColor,
+              height: "100%",
+            }}
+          />
+          <View style={s.biasOverlay}>
+            <View style={s.iconRow}>
+              <View style={s.biasIconWrapper}>
+                <MaterialCommunityIcons
+                  name="scale-balance"
+                  size={18}
+                  color="#D74D41"
+                />
+              </View>
+              <Text style={s.label}>Political Bias Analysis</Text>
             </View>
-            <Text style={s.label}>Political Bias Analysis</Text>
+            <Text style={s.caret}>
+              {sections["Political Bias Analysis"] ? "˄" : "˅"}
+            </Text>
           </View>
-          <Text style={s.caret}>
-            {sections["Political Bias Analysis"] ? "˄" : "˅"}
-          </Text>
         </View>
-      </View>
-    </Pressable>
-  );
+      </Pressable>
+    );
+  };
 
   const renderFallacySection = (
     fallacyType: string,
@@ -169,8 +156,13 @@ export default function ArticleView() {
                 <View style={s.ratingContainer}>
                   <Text style={s.ratingLabel}>Confidence Rating:</Text>
                   <View style={s.ratingStars}>
-                    {[...Array(fallacy.rating)].map((_, i) => (
-                      <Feather key={i} name="star" size={16} color="#D74D41" />
+                    {[...Array(5)].map((_, i) => (
+                      <MaterialCommunityIcons
+                        key={i}
+                        name={i < fallacy.rating ? "star" : "star-outline"}
+                        size={16}
+                        color="#D74D41"
+                      />
                     ))}
                   </View>
                 </View>
@@ -202,28 +194,45 @@ export default function ArticleView() {
     }
   };
 
+  const hasAnyFallacies =
+    parsedLogicalFallacies &&
+    Object.values(parsedLogicalFallacies).some(
+      (category) =>
+        category.logical_fallacies && category.logical_fallacies.length > 0
+    );
+
   return (
     <ScrollView contentContainerStyle={s.container}>
       <View style={s.box}>
         <Text style={s.title}>{title}</Text>
 
         {/* Source URL Section */}
-        <Pressable style={s.sourceContainer} onPress={handleSourcePress}>
+        <Pressable
+          style={({ pressed }) => [
+            s.sourceContainer,
+            pressed && s.sourceContainerPressed,
+          ]}
+          onPress={handleSourcePress}
+        >
           <View style={s.sourceContent}>
-            <Feather
-              name="external-link"
-              size={16}
-              color={isDark ? "#EDEDED" : "#152B3F"}
-            />
+            <View style={s.sourceIconContainer}>
+              <Feather
+                name="external-link"
+                size={18}
+                color={isDark ? "#EDEDED" : "#152B3F"}
+              />
+            </View>
             <Text style={s.sourceText} numberOfLines={1}>
-              {source_url}
+              Read Article
             </Text>
           </View>
-          <Feather
-            name="chevron-right"
-            size={16}
-            color={isDark ? "#EDEDED" : "#152B3F"}
-          />
+          <View style={s.sourceChevronContainer}>
+            <Feather
+              name="chevron-right"
+              size={18}
+              color={isDark ? "#EDEDED" : "#152B3F"}
+            />
+          </View>
         </Pressable>
 
         <Text style={s.sectionLabel}>Summary</Text>
@@ -271,18 +280,34 @@ export default function ArticleView() {
           {parsedLogicalFallacies && (
             <View style={s.fallaciesContainer}>
               <Text style={s.sectionLabel}>Logical Fallacies Analysis</Text>
-              {/* Render Good Sources first if it exists */}
-              {parsedLogicalFallacies.good_sources &&
-                renderFallacySection(
-                  "good_sources",
-                  parsedLogicalFallacies.good_sources
-                )}
-              {/* Render other fallacies */}
-              {Object.entries(parsedLogicalFallacies)
-                .filter(([type]) => type !== "good_sources")
-                .map(([type, category]) =>
-                  renderFallacySection(type, category)
-                )}
+              {hasAnyFallacies ? (
+                <>
+                  {/* Render Good Sources first if it exists */}
+                  {parsedLogicalFallacies.good_sources &&
+                    renderFallacySection(
+                      "good_sources",
+                      parsedLogicalFallacies.good_sources
+                    )}
+                  {/* Render other fallacies */}
+                  {Object.entries(parsedLogicalFallacies)
+                    .filter(([type]) => type !== "good_sources")
+                    .map(([type, category]) =>
+                      renderFallacySection(type, category)
+                    )}
+                </>
+              ) : (
+                <View style={s.noFallaciesContainer}>
+                  <Feather
+                    name="info"
+                    size={32}
+                    color={isDark ? "#EDEDED" : "#152B3F"}
+                    style={{ marginBottom: 8 }}
+                  />
+                  <Text style={s.noFallaciesText}>
+                    No substantial analysis to show for this article.
+                  </Text>
+                </View>
+              )}
             </View>
           )}
         </View>
@@ -503,9 +528,15 @@ const styles = (dark: boolean) =>
       alignItems: "center",
       justifyContent: "space-between",
       backgroundColor: dark ? "#1A2B3F" : "#F5F5F5",
-      padding: 12,
+      padding: 10,
       borderRadius: 8,
       marginBottom: 16,
+      borderWidth: 1,
+      borderColor: dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)",
+    },
+    sourceContainerPressed: {
+      opacity: 0.8,
+      transform: [{ scale: 0.98 }],
     },
     sourceContent: {
       flexDirection: "row",
@@ -513,10 +544,38 @@ const styles = (dark: boolean) =>
       flex: 1,
       marginRight: 8,
     },
+    sourceIconContainer: {
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      backgroundColor: dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)",
+      alignItems: "center",
+      justifyContent: "center",
+      marginRight: 8,
+    },
     sourceText: {
       fontSize: 14,
+      fontWeight: "500",
       color: dark ? "#EDEDED" : "#152B3F",
-      marginLeft: 8,
       flex: 1,
+    },
+    sourceChevronContainer: {
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      backgroundColor: dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    noFallaciesContainer: {
+      alignItems: "center",
+      justifyContent: "center",
+      paddingVertical: 32,
+    },
+    noFallaciesText: {
+      fontSize: 16,
+      color: dark ? "#EDEDED" : "#152B3F",
+      textAlign: "center",
+      marginTop: 4,
     },
   });
