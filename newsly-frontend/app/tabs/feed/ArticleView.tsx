@@ -38,7 +38,7 @@ export default function ArticleView() {
     title,
     summary,
     biasScore,
-    historicalContext,
+    contextualization,
     logical_fallacies,
     authors,
     published_date,
@@ -53,6 +53,24 @@ export default function ArticleView() {
   }>({});
   const [sections, setSections] = useState<{ [k: string]: boolean }>({});
   const biasAnalysisMap = new Map<string, string>();
+
+  // Convert predicted bias string to number
+  const getBiasNumber = (biasStr: string) => {
+    switch (biasStr.toLowerCase()) {
+      case "left":
+        return -1;
+      case "center":
+        return 0;
+      case "right":
+        return 1;
+      default:
+        return 0;
+    }
+  };
+
+  const bias = getBiasNumber(biasScore as string);
+  const isDark = useColorScheme() === "dark";
+  const s = styles(isDark);
 
   const toggleFallacy = (fallacyType: string) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -127,7 +145,11 @@ export default function ArticleView() {
         >
           <View style={s.fallacyHeaderContent}>
             <View style={s.fallacyIconWrapper}>
-              <Feather name="alert-circle" size={18} color="#D74D41" />
+              {fallacyType === "good_sources" ? (
+                <Feather name="check-circle" size={18} color="#22C55E" />
+              ) : (
+                <Feather name="alert-circle" size={18} color="#D74D41" />
+              )}
             </View>
             <Text style={s.fallacyTitle}>{displayName}</Text>
           </View>
@@ -168,10 +190,6 @@ export default function ArticleView() {
       </View>
     );
   };
-
-  const bias = Math.max(-1, Math.min(1, parseFloat(biasScore as string) || 0));
-  const isDark = useColorScheme() === "dark";
-  const s = styles(isDark);
 
   return (
     <ScrollView contentContainerStyle={s.container}>
@@ -214,7 +232,7 @@ export default function ArticleView() {
               </View>
             </Pressable>
             {sections["Historical Context"] && (
-              <Text style={s.body}>{historicalContext as string}</Text>
+              <Text style={s.body}>{contextualization as string}</Text>
             )}
           </View>
 

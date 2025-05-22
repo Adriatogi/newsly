@@ -1,6 +1,27 @@
 import React from "react";
 import { View, Text, StyleSheet, Image, useColorScheme } from "react-native";
 
+export const formatDate = (dateStr: string) => {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffTime = Math.abs(now.getTime() - date.getTime());
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) {
+    return "Today";
+  } else if (diffDays === 1) {
+    return "Yesterday";
+  } else if (diffDays < 7) {
+    return `${diffDays} days ago`;
+  } else {
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: date.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
+    });
+  }
+};
+
 interface NewsCardProps {
   title: string;
   imageUrl: string;
@@ -8,7 +29,7 @@ interface NewsCardProps {
   publishDate: string;
   shadowColor?: string;
   shadowOpacity?: number;
-  biasScore?: number;
+  biasScore?: string;
   category: string;
   author: string;
 }
@@ -20,13 +41,28 @@ export const NewsCard: React.FC<NewsCardProps> = ({
   publishDate,
   shadowColor = "#000",
   shadowOpacity = 0.1,
-  biasScore = 0,
+  biasScore = "center",
   category,
   author,
 }) => {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
-  const normalizedScore = Math.max(-1, Math.min(1, biasScore));
+
+  // Convert bias string to number for the bar
+  const getBiasNumber = (biasStr: string) => {
+    switch (biasStr.toLowerCase()) {
+      case "left":
+        return -0.7;
+      case "center":
+        return 0;
+      case "right":
+        return 0.7;
+      default:
+        return 0;
+    }
+  };
+
+  const normalizedScore = getBiasNumber(biasScore);
   const cardTheme = isDark ? darkCardStyles : lightCardStyles;
 
   return (
@@ -46,7 +82,7 @@ export const NewsCard: React.FC<NewsCardProps> = ({
         <View style={cardTheme.metaContainer}>
           <Text style={cardTheme.authorText}>By {author}</Text>
           <Text style={cardTheme.cardMeta}>
-            {publishDate} • {reads} reads
+            {formatDate(publishDate)} • {reads} reads
           </Text>
         </View>
 

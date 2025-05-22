@@ -24,6 +24,15 @@ export interface LogicalFallacies {
   presenting_other_side: FallacyCategory;
 }
 
+interface BiasData {
+  probabilities: {
+    left: number;
+    center: number;
+    right: number;
+  };
+  predicted_bias: string;
+}
+
 export interface NewsArticle {
   id: string;
   url: string;
@@ -38,7 +47,7 @@ export interface NewsArticle {
   source_url: string;
   keywords: string[];
   summary: string;
-  bias: number;
+  bias: BiasData;
   topics: string[];
   contextualization: string;
   images: string[];
@@ -101,7 +110,17 @@ function transformArticle(data: any): NewsArticle {
     source_url: data.source_url || "",
     keywords: Array.isArray(data.keywords) ? data.keywords : [],
     summary: data.summary || "",
-    bias: typeof data.bias === "number" ? data.bias : 0,
+    bias:
+      data.bias && typeof data.bias === "object"
+        ? data.bias
+        : {
+            probabilities: {
+              left: 0,
+              center: 0,
+              right: 0,
+            },
+            predicted_bias: "center",
+          },
     topics:
       Array.isArray(data.topics) && data.topics.length > 0
         ? [data.topics[0]]

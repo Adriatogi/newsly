@@ -54,14 +54,12 @@ const Feed: React.FC = () => {
       : articles.filter((article) => article.topics.includes(activeCategory));
 
   const handleArticlePress = (article: NewsArticle) => {
-    console.log("PRE PRESS LF", article.logical_fallacies);
-
     router.push({
       pathname: "/tabs/feed/ArticleView",
       params: {
         title: article.title,
         summary: article.summary,
-        bias: article.bias.toString(),
+        biasScore: article.bias.predicted_bias,
         contextualization: article.contextualization,
         logical_fallacies: JSON.stringify(article.logical_fallacies),
         authors: JSON.stringify(article.authors),
@@ -161,7 +159,7 @@ const Feed: React.FC = () => {
                 publishDate={article.published_date}
                 shadowColor="#000"
                 shadowOpacity={0.15}
-                biasScore={article.bias}
+                biasScore={article.bias.predicted_bias}
                 category={article.topics[0] || "Uncategorized"}
                 author={article.authors[0] || "Unknown Author"}
               />
@@ -178,14 +176,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   container: {
-    paddingHorizontal: 20,
     paddingTop: 20,
   },
   categoriesContainer: {
     marginBottom: 20,
   },
   categoriesScroll: {
-    paddingRight: 20,
+    paddingLeft: 20,
   },
   categoryButton: {
     paddingHorizontal: 16,
@@ -207,6 +204,7 @@ const styles = StyleSheet.create({
   },
   newsContainer: {
     gap: 16,
+    paddingHorizontal: 20,
   },
   loadingContainer: {
     flex: 1,

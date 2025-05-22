@@ -106,7 +106,6 @@ export default function App() {
         );
       }
       const result = await response.json();
-      console.log(result);
       const parsed: AnalysisData[] = [
         {
           source: result.source || "Unknown Source",
