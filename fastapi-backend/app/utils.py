@@ -2,7 +2,7 @@ from newspaper import Article
 import modal
 from datetime import datetime
 from urllib.parse import urlparse, urlunparse
-from dataclasses import dataclass, field
+from dataclasses import fields
 import json
 import re
 import os
@@ -13,6 +13,20 @@ modal_summarize = modal.Function.from_name("newsly-modal-test", "summarize")
 modal_political_bias = modal.Function.from_name("newsly-modal-test", "political_bias")
 
 TEST = int(os.environ.get("TEST", "0"))
+
+
+def filter_article_data(data: dict) -> dict:
+    """
+    Filters the incoming article data dictionary to include only keys
+    that are valid fields of the NewslyArticle dataclass. This prevents
+    unexpected keys (e.g., from a newer or out-of-sync DB schema) from
+    causing a TypeError when unpacking into the dataclass.
+    """
+    valid_fields = {f.name for f in fields(NewslyArticle)}
+    invalid_keys = set(data) - valid_fields
+    if invalid_keys:
+        print(f"[Warning] Dropped unknown keys: {invalid_keys}")
+    return {k: v for k, v in data.items() if k in valid_fields}
 
 
 def normalize_url(url: str) -> str:
