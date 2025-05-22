@@ -22,7 +22,12 @@ def get_all_articles() -> list[NewslyArticle]:
     # Get all articles from the database
     response = supabase.table("articles").select("*").execute()
     return (
-        [NewslyArticle(**article) for article in response.data] if response.data else []
+        [
+            NewslyArticle(**utils.filter_article_data(article))  # filter first
+            for article in response.data
+        ]
+        if response.data
+        else []
     )
 
 
@@ -35,7 +40,10 @@ def get_article_by_url(url: str) -> NewslyArticle | None:
 
     response = supabase.table("articles").select("*").eq("url", url).execute()
     if response.data:
-        return NewslyArticle(**response.data[0])
+        article_data = utils.filter_article_data(
+            response.data[0]
+        )  # do this step to remove any extra fields. extra fields will cause errors
+        return NewslyArticle(**article_data)
     else:
         return None
 
@@ -82,7 +90,10 @@ def add_article_to_db(article: NewslyArticle) -> NewslyArticle | None:
     if not utils.TEST:
         response = supabase.table("articles").insert(parsed_article).execute()
         if response.data:
-            return NewslyArticle(**response.data[0])
+            article_data = utils.filter_article_data(
+                response.data[0]
+            )  # do this step to remove any extra fields. extra fields will cause errors
+            return NewslyArticle(**article_data)
     else:
         return article
 
@@ -105,6 +116,9 @@ def update_article(article: NewslyArticle) -> NewslyArticle | None:
     # Update an article by ID in the database
     response = supabase.table("articles").update(data).eq("id", article_id).execute()
     if response.data:
-        return NewslyArticle(**response.data[0])
+        article_data = utils.filter_article_data(
+            response.data[0]
+        )  # do this step to remove any extra fields. extra fields will cause errors
+        return NewslyArticle(**article_data)
     else:
         return None
