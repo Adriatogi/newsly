@@ -1,4 +1,5 @@
 import modal
+from typing import Any, Dict
 
 # settings for timeout
 IDLE_TIMEOUT = 60  # seconds
@@ -159,7 +160,7 @@ async def contextualize_article(text: str, topics: list[str]) -> dict:
     volumes={"/root/.cache/huggingface": hf_cache_vol},
     scaledown_window=IDLE_TIMEOUT,
 )
-async def bias_explanation(text: str, predicted_bias: str, probabilities: dict) -> str:
+async def bias_explanation(text: str, predicted_bias: str, bias_probability: float) -> str:
     from transformers import pipeline, AutoTokenizer
 
     print("Starting bias explanation generation...")
@@ -169,27 +170,18 @@ async def bias_explanation(text: str, predicted_bias: str, probabilities: dict) 
     tokens = tokenizer.encode(text)
     
     # Truncate text if it's too long (leave room for the prompt)
-    max_input_tokens = 800  # Leave room for the prompt
+    max_input_tokens = 200  # Reduced to ensure we're well under 512 token limit
     if len(tokens) > max_input_tokens:
         text = tokenizer.decode(tokens[:max_input_tokens])
 
     explainer = pipeline("text2text-generation", model="google/flan-t5-large", device=0)
-    prompt = f"""
-    You are an expert media analyst. Analyze this article and explain in detail why it was classified as {predicted_bias} leaning.
-    
-    Your analysis should:
-    1. Identify specific examples from the text that demonstrate {predicted_bias} bias
-    2. Explain how the language, framing, and content choices contribute to this bias
-    3. Note any loaded terms, selective facts, or narrative framing that supports this classification
-    4. Consider the model's confidence level of {probabilities[predicted_bias]:.2f} in your analysis
-    
-    Write a detailed, well-structured explanation that would help readers understand the bias classification.
-    Be specific and cite examples from the text.
-
-    Article text:
+    prompt = f"""Analyze {predicted_bias} bias ({bias_probability:.2f} confidence) based on the following article:
     {text}
 
-    Detailed bias analysis:
-    """
-    explanation = explainer(prompt, max_new_tokens=400, do_sample=False, temperature=0.7)
-    return explanation[0].get("generated_text", explanation[0].get("text", ""))
+    Your analysis must consider: topics, word choice, framing, and perspective.
+
+    Analysis:"""
+    explanation = explainer(prompt, max_new_tokens=1024, do_sample=True, temperature=0.7)
+    result = explanation[0].get("generated_text", explanation[0].get("text", ""))
+    print("\nGenerated explanation:", result)
+    return result

@@ -38,66 +38,41 @@ except ImportError:
     print("PyTorch not installed, using CPU")
 
 
-async def bias_explanation(text: str, predicted_bias: str, probabilities: dict):
-    if utils.TEST:
-        print("Test active bias explanation")
-        return "Test active explanation"
+async def bias_explanation(
+    text: str, predicted_bias: str, bias_probability: float
+) -> str:
+    from transformers import pipeline, AutoTokenizer
 
-    if device == "cuda":
-        explainer = pipeline("text-generation", model="gpt2-medium")
-        prompt = f"""
-        You are an expert media analyst. Analyze this article and explain in detail why it was classified as {predicted_bias} leaning.
-        
-        Your analysis should:
-        1. Identify specific examples from the text that demonstrate {predicted_bias} bias
-        2. Explain how the language, framing, and content choices contribute to this bias
-        3. Note any loaded terms, selective facts, or narrative framing that supports this classification
-        4. Consider the model's confidence level of {probabilities[predicted_bias]:.2f} in your analysis
-        
-        Write a detailed, well-structured explanation that would help readers understand the bias classification.
-        Be specific and cite examples from the text.
+    print("Starting bias explanation generation...")
 
-        Article text:
-        {text}
+    # Load tokenizer to check input length
+    tokenizer = AutoTokenizer.from_pretrained("google/flan-t5-large")
+    tokens = tokenizer.encode(text)
 
-        Detailed bias analysis:
-        """
-        explanation = explainer(prompt, max_length=512, do_sample=False)
-        return explanation[0].get("generated_text", explanation[0].get("text", ""))
-    else:
-        prompt = f"""
-        You are an expert media analyst. Analyze this article and explain in detail why it was classified as {predicted_bias} leaning.
-        
-        Your analysis should:
-        1. Identify specific examples from the text that demonstrate {predicted_bias} bias
-        2. Explain how the language, framing, and content choices contribute to this bias
-        3. Note any loaded terms, selective facts, or narrative framing that supports this classification
-        4. Consider the model's confidence level of {probabilities[predicted_bias]:.2f} in your analysis
-        
-        Write a detailed, well-structured explanation that would help readers understand the bias classification.
-        Be specific and cite examples from the text.
+    # Truncate text if it's too long (leave room for the prompt)
+    max_input_tokens = 200  # Reduced to ensure we're well under 512 token limit
+    if len(tokens) > max_input_tokens:
+        text = tokenizer.decode(tokens[:max_input_tokens])
 
-        Article text:
-        {text}
+    explainer = pipeline("text2text-generation", model="google/flan-t5-large", device=0)
+    prompt = f"""Analyze {predicted_bias} bias ({bias_probability:.2f} confidence):
 
-        Detailed bias analysis:
-        """
-        messages = [
-            {
-                "role": "system",
-                "content": "You are a helpful expert well-versed in political bias and the news.",
-            },
-            {"role": "user", "content": prompt},
-        ]
+    1. Quote examples
+    2. Explain each quote:
+    - Word choice
+    - Facts
+    - Tone
 
-        explanation = generate_together(
-            model="meta-llama/Llama-3.3-70B-Instruct-Turbo",
-            messages=messages,
-            max_tokens=1024,
-            temperature=0.7,
-        )
+    Article:
+    {text}
 
-        return explanation
+Analysis:"""
+    explanation = explainer(
+        prompt, max_new_tokens=1024, do_sample=True, temperature=0.7
+    )
+    result = explanation[0].get("generated_text", explanation[0].get("text", ""))
+    print("\nGenerated explanation:", result)
+    return result
 
 
 async def political_bias(text: str) -> dict:
