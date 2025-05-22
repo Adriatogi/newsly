@@ -1,11 +1,11 @@
-import { useMemo, useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Text,
   View,
   TextInput,
   StyleSheet,
   ScrollView,
-  SafeAreaView,
+  SafeAreaView, 
   TouchableOpacity,
   Animated,
   ActivityIndicator,
@@ -15,7 +15,11 @@ import {
   Platform,
   UIManager,
 } from "react-native";
-import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+import {
+  Feather,
+  MaterialCommunityIcons,
+  FontAwesome,
+} from "@expo/vector-icons";
 
 if (Platform.OS === "android")
   UIManager.setLayoutAnimationEnabledExperimental?.(true);
@@ -88,14 +92,11 @@ export default function App() {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(
-        "https://78r8cpg45j.us-east-2.awsapprunner.com/articles/analyze",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url }),
-        }
-      );
+      const response = await fetch("https://78r8cpg45j.us-east-2.awsapprunner.com/articles/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
+      });
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -105,7 +106,6 @@ export default function App() {
         );
       }
       const result = await response.json();
-      console.log(result);
       const parsed: AnalysisData[] = [
         {
           source: result.source || "Unknown Source",
@@ -171,7 +171,7 @@ export default function App() {
     <SafeAreaView
       style={[
         styles.safeArea,
-        { backgroundColor: isDark ? "#152B3F" : "#F8F6EF" },
+        { backgroundColor: isDark ? "#152B3F" : "#FFFFFF" },
       ]}
     >
       <Animated.View style={[styles.loadingOverlay, { opacity: fadeAnim }]}>
@@ -225,11 +225,72 @@ export default function App() {
                 { color: isDark ? "#152B3F" : "#FFFFF4" },
               ]}
             >
-              Analyze
+              Analyze Article
             </Text>
           </TouchableOpacity>
         </View>
-
+        <View style={styles.featuresRow}>
+          <View style={styles.featureItem}>
+            <Feather
+              name="smile"
+              size={28}
+              color={isDark ? "#FFFFFF" : "#3B5FFF"}
+            />
+            <Text
+              style={[
+                styles.featureLabel,
+                { color: isDark ? "#FFFFFF" : "#3B5FFF" },
+              ]}
+            >
+              Sentiment
+            </Text>
+          </View>
+          <View style={styles.featureItem}>
+            <MaterialCommunityIcons
+              name="swap-horizontal"
+              size={28}
+              color={isDark ? "#FFFFFF" : "#3B5FFF"}
+            />
+            <Text
+              style={[
+                styles.featureLabel,
+                { color: isDark ? "#FFFFFF" : "#3B5FFF" },
+              ]}
+            >
+              Bias Detection
+            </Text>
+          </View>
+          <View style={styles.featureItem}>
+            <MaterialCommunityIcons
+              name="shield-check"
+              size={28}
+              color={isDark ? "#FFFFFF" : "#3B5FFF"}
+            />
+            <Text
+              style={[
+                styles.featureLabel,
+                { color: isDark ? "#FFFFFF" : "#3B5FFF" },
+              ]}
+            >
+              Source Credibility
+            </Text>
+          </View>
+          <View style={styles.featureItem}>
+            <FontAwesome
+              name="book"
+              size={26}
+              color={isDark ? "#FFFFFF" : "#3B5FFF"}
+            />
+            <Text
+              style={[
+                styles.featureLabel,
+                { color: isDark ? "#FFFFFF" : "#3B5FFF" },
+              ]}
+            >
+              Read Time
+            </Text>
+          </View>
+        </View>
         {error && (
           <View
             style={[
@@ -623,5 +684,25 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingTop: 8,
+  },
+  featuresRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    width: "100%",
+    marginTop: 30,
+    marginBottom: 10,
+    paddingHorizontal: 10,
+  },
+  featureItem: {
+    alignItems: "center",
+    flex: 1,
+  },
+  featureLabel: {
+    marginTop: 8,
+    fontSize: 14,
+    color: "#3B5FFF",
+    fontWeight: "600",
+    textAlign: "center",
   },
 });

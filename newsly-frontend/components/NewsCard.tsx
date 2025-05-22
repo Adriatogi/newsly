@@ -1,6 +1,27 @@
 import React from "react";
 import { View, Text, StyleSheet, Image, useColorScheme } from "react-native";
 
+export const formatDate = (dateStr: string) => {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffTime = Math.abs(now.getTime() - date.getTime());
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) {
+    return "Today";
+  } else if (diffDays === 1) {
+    return "Yesterday";
+  } else if (diffDays < 7) {
+    return `${diffDays} days ago`;
+  } else {
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: date.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
+    });
+  }
+};
+
 interface NewsCardProps {
   title: string;
   imageUrl: string;
@@ -8,22 +29,92 @@ interface NewsCardProps {
   publishDate: string;
   shadowColor?: string;
   shadowOpacity?: number;
-  biasScore?: number;
+  biasScore?: string;
   category: string;
   author: string;
 }
 
-const baseTriangle = {
-  position: "absolute",
-  bottom: -6,
-  width: 0,
-  height: 0,
-  borderLeftWidth: 5,
-  borderRightWidth: 5,
-  borderBottomWidth: 6,
-  borderLeftColor: "transparent",
-  borderRightColor: "transparent",
-  transform: [{ translateX: -5 }],
+export const NewsCard: React.FC<NewsCardProps> = ({
+  title,
+  imageUrl,
+  reads,
+  publishDate,
+  shadowColor = "#000",
+  shadowOpacity = 0.1,
+  biasScore = "center",
+  category,
+  author,
+}) => {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
+
+  // Convert bias string to number for the bar
+  const getBiasNumber = (biasStr: string) => {
+    switch (biasStr.toLowerCase()) {
+      case "left":
+        return -0.7;
+      case "center":
+        return 0;
+      case "right":
+        return 0.7;
+      default:
+        return 0;
+    }
+  };
+
+  const normalizedScore = getBiasNumber(biasScore);
+  const cardTheme = isDark ? darkCardStyles : lightCardStyles;
+
+  return (
+    <View style={[cardTheme.card, { shadowColor, shadowOpacity }]}>
+      <View style={cardTheme.imageWrapper}>
+        <Image
+          source={{ uri: imageUrl }}
+          style={cardTheme.image}
+          resizeMode="cover"
+        />
+        <View style={cardTheme.categoryTag}>
+          <Text style={cardTheme.categoryText}>{category}</Text>
+        </View>
+      </View>
+      <View style={cardTheme.textWrapper}>
+        <Text style={cardTheme.cardTitle}>{title}</Text>
+        <View style={cardTheme.metaContainer}>
+          <Text style={cardTheme.authorText}>By {author}</Text>
+          <Text style={cardTheme.cardMeta}>
+            {formatDate(publishDate)} • {reads} reads
+          </Text>
+        </View>
+
+        <View style={cardTheme.biasBarContainer}>
+          <View style={cardTheme.biasBarBackground}>
+            <View style={cardTheme.biasBarUnified}>
+              <View
+                style={[
+                  cardTheme.leftBias,
+                  { flex: (1 - normalizedScore) / 2 },
+                ]}
+              />
+              <View
+                style={[
+                  cardTheme.rightBias,
+                  { flex: (1 + normalizedScore) / 2 },
+                ]}
+              />
+            </View>
+          </View>
+          <View
+            style={[
+              cardTheme.triangle,
+              {
+                left: `${((1 - normalizedScore) / 2) * 100}%`,
+              },
+            ]}
+          />
+        </View>
+      </View>
+    </View>
+  );
 };
 
 const lightCardStyles = StyleSheet.create({
@@ -150,71 +241,3 @@ const darkCardStyles = StyleSheet.create({
     color: "#EDEDED",
   },
 });
-
-export const NewsCard: React.FC<NewsCardProps> = ({
-  title,
-  imageUrl,
-  reads,
-  publishDate,
-  shadowColor = "#000",
-  shadowOpacity = 0.1,
-  biasScore = 0,
-  category,
-  author,
-}) => {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
-  const normalizedScore = Math.max(-1, Math.min(1, biasScore));
-  const cardTheme = isDark ? darkCardStyles : lightCardStyles;
-
-  return (
-    <View style={[cardTheme.card, { shadowColor, shadowOpacity }]}>
-      <View style={cardTheme.imageWrapper}>
-        <Image
-          source={{ uri: imageUrl }}
-          style={cardTheme.image}
-          resizeMode="cover"
-        />
-        <View style={cardTheme.categoryTag}>
-          <Text style={cardTheme.categoryText}>{category}</Text>
-        </View>
-      </View>
-      <View style={cardTheme.textWrapper}>
-        <Text style={cardTheme.cardTitle}>{title}</Text>
-        <View style={cardTheme.metaContainer}>
-          <Text style={cardTheme.authorText}>By {author}</Text>
-          <Text style={cardTheme.cardMeta}>
-            {publishDate} • {reads} reads
-          </Text>
-        </View>
-
-        <View style={cardTheme.biasBarContainer}>
-          <View style={cardTheme.biasBarBackground}>
-            <View style={cardTheme.biasBarUnified}>
-              <View
-                style={[
-                  cardTheme.leftBias,
-                  { flex: (1 - normalizedScore) / 2 },
-                ]}
-              />
-              <View
-                style={[
-                  cardTheme.rightBias,
-                  { flex: (1 + normalizedScore) / 2 },
-                ]}
-              />
-            </View>
-          </View>
-          <View
-            style={[
-              cardTheme.triangle,
-              {
-                left: `${((1 - normalizedScore) / 2) * 100}%`,
-              },
-            ]}
-          />
-        </View>
-      </View>
-    </View>
-  );
-};
