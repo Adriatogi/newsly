@@ -106,13 +106,68 @@ async def political_lean(text: str) -> dict:
     volumes={"/root/.cache/huggingface": hf_cache_vol},
     scaledown_window=IDLE_TIMEOUT,
 )
-async def extract_topics(text: str) -> list[str]:
+async def get_keywords(text: str) -> dict:
     from keybert import KeyBERT
 
     kw_model = KeyBERT()
     keywords = kw_model.extract_keywords(text)
-    print("keywords:", keywords)
-    topics = [keyword[0] for keyword in keywords]
+    words = [keyword[0] for keyword in keywords]
+    return words
+
+
+@app.function(
+    gpu="L4",
+    image=image,
+    volumes={"/root/.cache/huggingface": hf_cache_vol},
+    scaledown_window=IDLE_TIMEOUT,
+)
+async def extract_topics(text: str, n_topics: int = 3) -> list[str]:
+    from transformers import pipeline
+    import re
+
+    pipe = pipeline(
+        "text-generation",
+        model="Qwen/Qwen2.5-3B-Instruct",
+        # load_in_4bit=True,
+    )
+
+    prompt = """Extract the main topics into a list of strings of 1-2 words.
+    It should come from the following text: {text}
+    The output should be the list and nothing else.
+    It should look like this: ["topic1", "topic2", "topic3"]
+    The list should contain up to {n_topics} topics. 
+    """
+
+    retry = 0
+    while retry < 3:
+        result = pipe(
+            prompt.format(n_topics=n_topics, text=text),
+            max_new_tokens=50,
+            do_sample=True,
+            return_full_text=False,
+        )
+        print(f"Result: {result}")
+        topics = result[0].get("generated_text", result[0].get("text", ""))
+        topics = re.search(r'\[(?:\s*"[^"]*"\s*,?)*\]', topics)
+        if not topics:
+            retry += 1
+            continue
+
+        try:
+            topics = topics.group(0)
+            topics = eval(topics)
+            break
+        except Exception as e:
+            print(f"Error evaluating topics: {e}")
+            retry += 1
+            continue
+
+    if retry == 3:
+        print("Failed to extract topics")
+        return []
+
+    print(f"Topics: {topics}")
+
     return topics
 
 

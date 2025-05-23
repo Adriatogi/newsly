@@ -23,12 +23,16 @@ from app.db import (
 modal_summarize = modal.Function.from_name("newsly-modal-test", "summarize")
 modal_political_lean = modal.Function.from_name("newsly-modal-test", "political_lean")
 modal_extract_topics = modal.Function.from_name("newsly-modal-test", "extract_topics")
+modal_get_keywords = modal.Function.from_name("newsly-modal-test", "get_keywords")
 modal_contextualize_article = modal.Function.from_name(
     "newsly-modal-test", "contextualize_article"
 )
-modal_lean_explanation = modal.Function.from_name("newsly-modal-test", "lean_explanation")
+modal_lean_explanation = modal.Function.from_name(
+    "newsly-modal-test", "lean_explanation"
+)
 
 NO_MODAL = False
+
 
 async def analyze_article(article: NewslyArticle, no_modal: bool = NO_MODAL) -> None:
     """
@@ -42,16 +46,27 @@ async def analyze_article(article: NewslyArticle, no_modal: bool = NO_MODAL) -> 
         lean = await political_lean(article.text)
         topics = await extract_topics(article.text)
         logical_fallacies = await get_logical_fallacies(article.text)
-        lean_explanation_text = await lean_explanation(article.text, lean["predicted_lean"], lean["probabilities"][lean["predicted_lean"]])
+        lean_explanation_text = await lean_explanation(
+            article.text,
+            lean["predicted_lean"],
+            lean["probabilities"][lean["predicted_lean"]],
+        )
     else:
         print("Running modal")
         summary = modal_summarize.remote.aio(article.text)
         lean = modal_political_lean.remote.aio(article.text)
         topics = modal_extract_topics.remote.aio(article.text)
+        keywords = modal_get_keywords.remote.aio(article.text)
         logical_fallacies = get_logical_fallacies(article.text)
-        summary, lean, topics, logical_fallacies = await asyncio.gather(summary, lean, topics, logical_fallacies)
+        summary, lean, topics, keywords, logical_fallacies = await asyncio.gather(
+            summary, lean, topics, keywords, logical_fallacies
+        )
         # lean explanation needs lean to be set
-        lean_explanation_text = await modal_lean_explanation.remote.aio(article.text, lean["predicted_lean"], lean["probabilities"][lean["predicted_lean"]])
+        lean_explanation_text = await modal_lean_explanation.remote.aio(
+            article.text,
+            lean["predicted_lean"],
+            lean["probabilities"][lean["predicted_lean"]],
+        )
 
     # contextualizing depends on `topics` so we need to wait for it. Can't run async with other functions
     contextualization = modal_contextualize_article.remote(
@@ -63,8 +78,10 @@ async def analyze_article(article: NewslyArticle, no_modal: bool = NO_MODAL) -> 
     article.lean = lean
     article.lean_explanation = lean_explanation_text
     article.topics = topics
+    article.keywords = keywords
     article.contextualization = contextualization
     article.logical_fallacies = logical_fallacies
+
 
 async def process_article_db(url: str, cache=True) -> NewslyArticle | None:
     """

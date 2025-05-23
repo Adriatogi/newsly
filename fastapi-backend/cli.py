@@ -151,9 +151,9 @@ def get_topics(url):
     if not article:
         raise click.ClickException("Failed to fetch or parse the URL")
 
-    topics = modal_extract_topics.remote.aio(article.text)
+    topics = asyncio.run(modal_extract_topics.remote.aio(article.text))
 
-    return topics
+    click.echo(topics)
 
 
 if __name__ == "__main__":
