@@ -24,11 +24,11 @@ except ImportError:
     device = 'cpu'
     print("PyTorch not installed, using CPU")
 
-
-async def bias_explanation(text: str, predicted_bias: str, bias_probability: float) -> str:
-    from transformers import pipeline, AutoTokenizer
-
-    print("Starting bias explanation generation...")
+async def lean_explanation(text: str, predicted_lean: str, lean_probability: float) -> str:
+    """
+    Generate an explanation for the predicted political lean of an article.
+    """
+    print("Starting lean explanation generation...")
 
     # Load tokenizer to check input length
     tokenizer = AutoTokenizer.from_pretrained("google/flan-t5-large")
@@ -40,34 +40,34 @@ async def bias_explanation(text: str, predicted_bias: str, bias_probability: flo
         text = tokenizer.decode(tokens[:max_input_tokens])
 
     explainer = pipeline("text2text-generation", model="google/flan-t5-large", device=0)
-    prompt = f"""Analyze {predicted_bias} bias ({bias_probability:.2f} confidence):
+    prompt = f"""Analyze the article text given predicted {predicted_lean} lean with ({lean_probability:.2f} confidence):
 
-    1. Quote examples
-    2. Explain each quote:
-    - Word choice
-    - Facts
-    - Tone
+        1. Quote examples
+        2. Explain each quote:
+        - Word choice
+        - Facts
+        - Tone
 
-    Article:
-    {text}
+        Article:
+        {text}
 
-Analysis:"""
+    Analysis:"""
     explanation = explainer(prompt, max_new_tokens=1024, do_sample=True, temperature=0.7)
     result = explanation[0].get("generated_text", explanation[0].get("text", ""))
     print("\nGenerated explanation:", result)
     return result
 
-async def political_bias(text: str) -> dict:
+async def political_lean(text: str) -> dict:
 
     if utils.TEST:
-        print("Test active political bias")
+        print("Test active political lean")
         return {
             "probabilities": {
                 "left": 0.3,
                 "center": 0.4,
                 "right": 0.3,
             },
-            "predicted_bias": "test_center",
+            "predicted_lean": "test_center",
         }
 
     if device == 'cuda':
@@ -86,7 +86,7 @@ async def political_bias(text: str) -> dict:
         probabilities = raw_probabilities[0].tolist()
         
         class_labels = ["left", "center", "right"]
-        predicted_bias = class_labels[predicted_class]
+        predicted_lean = class_labels[predicted_class]
         
         return {
             "probabilities": {
@@ -94,11 +94,11 @@ async def political_bias(text: str) -> dict:
                 "center": probabilities[1],
                 "right": probabilities[2],
             },
-            "predicted_bias": predicted_bias,
+            "predicted_lean": predicted_lean,
         }
     else:
         prompt = f"""
-            looking at the following text, please determine the political bias of the text.
+            looking at the following text, please determine the political lean of the text.
             Text: {text}
 
             Please return the answer in the following format:
@@ -108,12 +108,12 @@ async def political_bias(text: str) -> dict:
                     "center": 0.4,
                     "right": 0.3
                 }},
-                "predicted_bias": "center"
+                "predicted_lean": "center"
             }}
         """
 
         messages = [
-            {"role": "system", "content": "You are a helpful assistant that determines the political bias of text."},
+            {"role": "system", "content": "You are a helpful assistant that determines the political lean of text."},
             {"role": "user", "content": prompt}
         ]
 
