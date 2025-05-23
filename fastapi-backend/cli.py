@@ -89,13 +89,13 @@ def analyze(url, json_output, test):
         click.echo(f"Authors: {', '.join(result.authors)}")
         click.echo("\nSummary:")
         click.echo(result.summary)
-        click.echo("\nBias Analysis:")
-        click.echo(f"Predicted Bias: {result.bias['predicted_bias']}")
+        click.echo("\nLean Analysis:")
+        click.echo(f"Predicted Lean: {result.lean['predicted_lean']}")
         click.echo("Probabilities:")
-        for bias, prob in result.bias['probabilities'].items():
-            click.echo(f"  {bias}: {prob:.2%}")
-        click.echo("\nBias Explanation:")
-        click.echo(result.bias_explanation)
+        for lean, prob in result.lean['probabilities'].items():
+            click.echo(f"  {lean}: {prob:.2%}")
+        click.echo("\nLean Explanation:")
+        click.echo(result.lean_explanation)
         click.echo("\nTopics:")
         for topic in result.topics:
             click.echo(f"  - {topic}")
