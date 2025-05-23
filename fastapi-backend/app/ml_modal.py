@@ -12,6 +12,7 @@ image = (
     .pip_install("torch")
     .pip_install("transformers")
     .pip_install("huggingface_hub[hf_xet]")
+    .pip_install("keybert")
 )
 app = modal.App(name="newsly-modal-test")
 
@@ -90,14 +91,11 @@ async def political_bias(text: str) -> dict:
     probabilities_dict = {
         "left": float(probabilities[0]),
         "center": float(probabilities[1]),
-        "right": float(probabilities[2])
+        "right": float(probabilities[2]),
     }
 
-    data = {
-        "probabilities": probabilities_dict,
-        "predicted_bias": str(predicted_bias)
-    }
-    
+    data = {"probabilities": probabilities_dict, "predicted_bias": str(predicted_bias)}
+
     print("Final data structure being returned:", data)
     return data
 
@@ -109,24 +107,12 @@ async def political_bias(text: str) -> dict:
     scaledown_window=IDLE_TIMEOUT,
 )
 async def extract_topics(text: str) -> list[str]:
-    from transformers import pipeline, AutoTokenizer, AutoModelForTokenClassification
+    from keybert import KeyBERT
 
-    topics = []
-
-    tokenizer = AutoTokenizer.from_pretrained("dslim/bert-base-NER")
-    model = AutoModelForTokenClassification.from_pretrained("dslim/bert-base-NER")
-
-    ner_pipeline = pipeline("ner", model=model, tokenizer=tokenizer)
-    entities = ner_pipeline(text)
-
-    # Filter out entities with low confidence scores
-    # TODO: include confidence score in output to make it more transparent?
-    possible_topics = set()
-    for entity in entities:
-        if entity["score"] > 0.85 and entity["word"] not in possible_topics:
-            possible_topics.add(entity["word"])
-
-    topics = list(possible_topics)
+    kw_model = KeyBERT()
+    keywords = kw_model.extract_keywords(text)
+    print("keywords:", keywords)
+    topics = [keyword[0] for keyword in keywords]
     return topics
 
 
@@ -160,7 +146,9 @@ async def contextualize_article(text: str, topics: list[str]) -> dict:
     volumes={"/root/.cache/huggingface": hf_cache_vol},
     scaledown_window=IDLE_TIMEOUT,
 )
-async def bias_explanation(text: str, predicted_bias: str, bias_probability: float) -> str:
+async def bias_explanation(
+    text: str, predicted_bias: str, bias_probability: float
+) -> str:
     from transformers import pipeline, AutoTokenizer
 
     print("Starting bias explanation generation...")
@@ -168,7 +156,7 @@ async def bias_explanation(text: str, predicted_bias: str, bias_probability: flo
     # Load tokenizer to check input length
     tokenizer = AutoTokenizer.from_pretrained("google/flan-t5-large")
     tokens = tokenizer.encode(text)
-    
+
     # Truncate text if it's too long (leave room for the prompt)
     max_input_tokens = 200  # Reduced to ensure we're well under 512 token limit
     if len(tokens) > max_input_tokens:
@@ -181,7 +169,9 @@ async def bias_explanation(text: str, predicted_bias: str, bias_probability: flo
     Your analysis must consider: topics, word choice, framing, and perspective.
 
     Analysis:"""
-    explanation = explainer(prompt, max_new_tokens=1024, do_sample=True, temperature=0.7)
+    explanation = explainer(
+        prompt, max_new_tokens=1024, do_sample=True, temperature=0.7
+    )
     result = explanation[0].get("generated_text", explanation[0].get("text", ""))
     print("\nGenerated explanation:", result)
     return result

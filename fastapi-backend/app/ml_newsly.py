@@ -197,15 +197,11 @@ async def extract_topics(text: str) -> list[str]:
         return ["topic_1", "topic_2"]
 
     if device == "cuda":
-        ner_pipeline = pipeline("ner", model="dslim/bert-base-NER", device=0)
-        entities = ner_pipeline(text)
+        from keybert import KeyBERT
 
-        possible_topics = set()
-        for entity in entities:
-            if entity["score"] > 0.85 and entity["word"] not in topics:
-                topics.add(entity["word"])
-
-        topics = list(possible_topics)
+        kw_model = KeyBERT()
+        keywords = kw_model.extract_keywords(text)
+        topics = [keyword[0] for keyword in keywords]
         return topics
     else:
         prompt = f"""

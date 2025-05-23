@@ -6,14 +6,16 @@ from app.server import process_article_db, analyze_article
 import app.utils as utils
 from app.utils import parse_article
 from app.ml_newsly import get_logical_fallacies
+from app.ml_modal import extract_topics
 import dataclasses
+
 
 async def process_article_wrapper(url, cache=True):
     return await process_article_db(url, cache=cache)
 
 
 async def analyze_article_wrapper(url):
-    article = parse_article(url)        
+    article = parse_article(url)
     if not article:
         raise click.ClickException("Failed to fetch or parse the URL")
     await analyze_article(article)
@@ -92,7 +94,7 @@ def analyze(url, json_output, test):
         click.echo("\nBias Analysis:")
         click.echo(f"Predicted Bias: {result.bias['predicted_bias']}")
         click.echo("Probabilities:")
-        for bias, prob in result.bias['probabilities'].items():
+        for bias, prob in result.bias["probabilities"].items():
             click.echo(f"  {bias}: {prob:.2%}")
         click.echo("\nBias Explanation:")
         click.echo(result.bias_explanation)
@@ -105,9 +107,9 @@ def analyze(url, json_output, test):
         for fallacy_type, fallacy_data in result.logical_fallacies.items():
             click.echo(f"\n{fallacy_type}:")
             click.echo(f"  Found: {fallacy_data['found']}")
-            if fallacy_data['found']:
+            if fallacy_data["found"]:
                 click.echo(f"  Explanation: {fallacy_data['explanation']}")
-                if 'error' in fallacy_data:
+                if "error" in fallacy_data:
                     click.echo(f"  Error: {fallacy_data['error']}")
 
 
@@ -126,7 +128,7 @@ def get_logical(url, json_output, test, sequential):
     print("parsed article")
     if not article:
         raise click.ClickException("Failed to fetch or parse the URL")
-    
+
     text = article.text
     result = asyncio.run(get_logical_fallacies(text, sequential=sequential))
 
@@ -134,8 +136,25 @@ def get_logical(url, json_output, test, sequential):
         # Convert each LogicalFallacies object to a dict
         serializable_result = dataclasses.asdict(result)
         click.echo(json.dumps(serializable_result, indent=2))
-    
+
+
+@cli.command()
+@click.argument("url")
+def get_topics(url):
+    import modal
+
+    modal_extract_topics = modal.Function.from_name(
+        "newsly-modal-test", "extract_topics"
+    )
+
+    article = parse_article(url)
+    if not article:
+        raise click.ClickException("Failed to fetch or parse the URL")
+
+    topics = modal_extract_topics.remote.aio(article.text)
+
+    return topics
+
 
 if __name__ == "__main__":
     cli()
-
