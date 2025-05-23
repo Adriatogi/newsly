@@ -1,4 +1,5 @@
 import modal
+from typing import Any, Dict
 
 # settings for timeout
 IDLE_TIMEOUT = 60  # seconds
@@ -63,35 +64,41 @@ async def political_lean(text: str) -> dict:
     from transformers import AutoTokenizer, AutoModelForSequenceClassification
     import torch
 
-    # Get the model and tokenizer
+    print("Starting political lean analysis...")
+
     tokenizer = AutoTokenizer.from_pretrained("bucketresearch/politicalBiasBERT")
     model = AutoModelForSequenceClassification.from_pretrained(
         "bucketresearch/politicalBiasBERT"
     )
 
-    print("model loaded")
+    print("Model loaded successfully")
 
     inputs = tokenizer(text, return_tensors="pt", truncation=True, max_length=512)
     outputs = model(**inputs)
     logits = outputs.logits
 
     raw_probabilities = torch.softmax(logits, dim=1)
-
     predicted_class = torch.argmax(raw_probabilities, dim=1).item()
     probabilities = raw_probabilities[0].tolist()
 
     class_labels = ["left", "center", "right"]
     predicted_lean = class_labels[predicted_class]
 
-    data = {
-        "probabilities": {
-            "left": probabilities[0],
-            "center": probabilities[1],
-            "right": probabilities[2],
-        },
-        "predicted_lean": predicted_lean,
+    print(f"Predicted lean: {predicted_lean}")
+    print(f"Raw probabilities: {probabilities}")
+
+    probabilities_dict = {
+        "left": float(probabilities[0]),
+        "center": float(probabilities[1]),
+        "right": float(probabilities[2])
     }
-    print("data:", data)
+
+    data = {
+        "probabilities": probabilities_dict,
+        "predicted_lean": str(predicted_lean)
+    }
+    
+    print("Final data structure being returned:", data)
     return data
 
 
@@ -145,3 +152,39 @@ async def contextualize_article(text: str, topics: list[str]) -> dict:
     return contextualization[0].get(
         "generated_text", contextualization[0].get("text", "")
     )
+
+
+@app.function(
+    gpu="L4",
+    image=image,
+    volumes={"/root/.cache/huggingface": hf_cache_vol},
+    scaledown_window=IDLE_TIMEOUT,
+)
+async def lean_explanation(text: str, predicted_lean: str, lean_probability: float) -> str:
+    """
+    Generate an explanation for the predicted political lean of an article.
+    """
+    print("Starting lean explanation generation...")
+
+    from transformers import pipeline, AutoTokenizer
+
+    # Load tokenizer to check input length
+    tokenizer = AutoTokenizer.from_pretrained("google/flan-t5-large")
+    tokens = tokenizer.encode(text)
+    
+    # Truncate text if it's too long (leave room for the prompt)
+    max_input_tokens = 200  # Reduced to ensure we're well under 512 token limit
+    if len(tokens) > max_input_tokens:
+        text = tokenizer.decode(tokens[:max_input_tokens])
+
+    explainer = pipeline("text2text-generation", model="google/flan-t5-large", device=0)
+    prompt = f"""Analyze {predicted_lean} lean ({lean_probability:.2f} confidence) based on the following article:
+    {text}
+
+    Your analysis must consider: topics, word choice, framing, and perspective.
+
+    Analysis:"""
+    explanation = explainer(prompt, max_new_tokens=1024, do_sample=True, temperature=0.7)
+    result = explanation[0].get("generated_text", explanation[0].get("text", ""))
+    print("\nGenerated explanation:", result)
+    return result
