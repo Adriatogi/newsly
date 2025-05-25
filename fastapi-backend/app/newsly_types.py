@@ -8,10 +8,12 @@ class ArticleAnalysisRequest(BaseModel):
 
 
 class LogicalFallacyAPI(BaseModel):
-    reason: str = Field(description="The reason for the fallacy")
     quote: str = Field(description="The quote that is the fallacy")
-    rating: int = Field(description="The rating of the fallacy")
-    explanation: str = Field(description="The explanation of the fallacy")
+    reason: str = Field(description="The reason for the fallacy")
+    explanation: str = Field(
+        description="An explanation of how confident it is in the rating"
+    )
+    rating: int = Field(description="The confidence rating of the fallacy")
 
 
 # This is what is fed to the API
