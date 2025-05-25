@@ -1,5 +1,6 @@
 import modal
 from typing import Any, Dict
+from dotenv import load_dotenv
 
 # settings for timeout
 IDLE_TIMEOUT = 60  # seconds
@@ -13,12 +14,16 @@ image = (
     .pip_install("transformers")
     .pip_install("huggingface_hub[hf_xet]")
     .pip_install("keybert")
+    .pip_install("python-dotenv")
 )
 app = modal.App(name="newsly-modal-test")
 
 
 # create a volume for huggingface cache
 hf_cache_vol = modal.Volume.from_name("huggingface-cache", create_if_missing=True)
+
+# load .env
+load_dotenv()
 
 
 @app.function(
@@ -116,8 +121,95 @@ async def get_keywords(text: str) -> dict:
 
 
 @app.function(
-    gpu="L4",
+    gpu="L40S",
     image=image,
+    secrets=[modal.Secret.from_name("huggingface-secret")],
+    volumes={"/root/.cache/huggingface": hf_cache_vol},
+    scaledown_window=IDLE_TIMEOUT,
+)
+async def get_tag(text: str) -> str:
+    from transformers import pipeline
+    import re
+    import os
+
+    hf_token = os.environ["HF_TOKEN"]
+
+    pipe = pipeline(
+        "text-generation",
+        model="meta-llama/Llama-3.1-8B-Instruct",
+        token=hf_token,
+        trust_remote_code=True,
+        # load_in_4bit=True,
+    )
+
+    prompt = """Given the following text;
+{text}
+
+    extract a single tag from the following list:
+•	Politics & Government
+•	Business & Economy
+•	Health & Science
+•	Technology & Innovation
+•	Social Issues & Inequality
+•	Crime & Law
+•	World Affairs
+•	Environment & Climate
+•	Culture & Entertainment
+•	Sports
+•	Education
+•	Opinion & Editorial
+•	Religion & Ethics
+
+The output should be the tag and nothing else.
+    """
+
+    retry = 0
+    while retry < 3:
+
+        result = pipe(
+            prompt.format(text=text),
+            max_new_tokens=10,
+            do_sample=True,
+            temperature=0.3,
+            return_full_text=False,
+            pad_token_id=pipe.tokenizer.eos_token_id,
+        )
+        print(result)
+
+        tag = result[0]["generated_text"].split("\n")[0].strip()
+        tag = re.sub(r"^[^\w\s&]+|[^\w\s&]+$", "", tag)
+
+        valid_tags = [
+            "Politics & Government",
+            "Business & Economy",
+            "Health & Science",
+            "Technology & Innovation",
+            "Social Issues & Inequality",
+            "Crime & Law",
+            "World Affairs",
+            "Environment & Climate",
+            "Culture & Entertainment",
+            "Sports",
+            "Education",
+            "Opinion & Editorial",
+            "Religion & Ethics",
+        ]
+
+        # Find the best match
+        if tag not in valid_tags:
+            retry += 1
+            print(f"Invalid tag: {tag}, retrying...")
+            continue
+
+        break
+
+    return tag
+
+
+@app.function(
+    gpu="L40S",
+    image=image,
+    secrets=[modal.Secret.from_name("huggingface-secret")],
     volumes={"/root/.cache/huggingface": hf_cache_vol},
     scaledown_window=IDLE_TIMEOUT,
 )
@@ -125,9 +217,14 @@ async def extract_topics(text: str, n_topics: int = 3) -> list[str]:
     from transformers import pipeline
     import re
 
+    import os
+
+    hf_token = os.environ["HF_TOKEN"]
+
     pipe = pipeline(
         "text-generation",
-        model="Qwen/Qwen2.5-3B-Instruct",
+        model="meta-llama/Llama-3.1-8B",
+        use_auth_token=hf_token,
         # load_in_4bit=True,
     )
 

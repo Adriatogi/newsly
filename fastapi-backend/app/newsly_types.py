@@ -90,11 +90,11 @@ class NewslyArticle:
     lean: str = ""
     lean_explanation: str = ""
     topics: list[str] = field(default_factory=list)
+    tag: str = ""
     contextualization: str = ""
     logical_fallacies: LogicalFallacyComplete = field(
         default_factory=LogicalFallacyComplete
     )
-
 
     # fields for the database
     # These fields are set by the database and should not be set manually

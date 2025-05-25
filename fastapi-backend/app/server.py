@@ -24,6 +24,7 @@ modal_summarize = modal.Function.from_name("newsly-modal-test", "summarize")
 modal_political_lean = modal.Function.from_name("newsly-modal-test", "political_lean")
 modal_extract_topics = modal.Function.from_name("newsly-modal-test", "extract_topics")
 modal_get_keywords = modal.Function.from_name("newsly-modal-test", "get_keywords")
+modal_get_tag = modal.Function.from_name("newsly-modal-test", "get_tag")
 modal_contextualize_article = modal.Function.from_name(
     "newsly-modal-test", "contextualize_article"
 )
@@ -57,9 +58,10 @@ async def analyze_article(article: NewslyArticle, no_modal: bool = NO_MODAL) -> 
         lean = modal_political_lean.remote.aio(article.text)
         topics = modal_extract_topics.remote.aio(article.text)
         keywords = modal_get_keywords.remote.aio(article.text)
+        tag = modal_get_tag.remote.aio(article.text)
         logical_fallacies = get_logical_fallacies(article.text)
-        summary, lean, topics, keywords, logical_fallacies = await asyncio.gather(
-            summary, lean, topics, keywords, logical_fallacies
+        summary, lean, topics, keywords, tag, logical_fallacies = await asyncio.gather(
+            summary, lean, topics, keywords, tag, logical_fallacies
         )
         # lean explanation needs lean to be set
         lean_explanation_text = await modal_lean_explanation.remote.aio(
@@ -79,6 +81,7 @@ async def analyze_article(article: NewslyArticle, no_modal: bool = NO_MODAL) -> 
     article.lean_explanation = lean_explanation_text
     article.topics = topics
     article.keywords = keywords
+    article.tag = tag
     article.contextualization = contextualization
     article.logical_fallacies = logical_fallacies
 
