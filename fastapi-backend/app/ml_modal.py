@@ -223,8 +223,9 @@ async def extract_topics(text: str, n_topics: int = 3) -> list[str]:
 
     pipe = pipeline(
         "text-generation",
-        model="meta-llama/Llama-3.1-8B",
-        use_auth_token=hf_token,
+        model="meta-llama/Llama-3.1-8B-Instruct",
+        temperature=0.3,
+        token=hf_token,
         # load_in_4bit=True,
     )
 
@@ -244,7 +245,7 @@ async def extract_topics(text: str, n_topics: int = 3) -> list[str]:
             return_full_text=False,
         )
         print(f"Result: {result}")
-        topics = result[0].get("generated_text", result[0].get("text", ""))
+        topics = result[0]["generated_text"]
         topics = re.search(r'\[(?:\s*"[^"]*"\s*,?)*\]', topics)
         if not topics:
             retry += 1
