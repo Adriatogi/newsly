@@ -198,15 +198,52 @@ async def extract_topics(text: str) -> list[str]:
         return ["topic_1", "topic_2"]
 
     if device == "cuda":
-        ner_pipeline = pipeline("ner", model="dslim/bert-base-NER", device=0)
-        entities = ner_pipeline(text)
+        from transformers import pipeline
+        import re
 
-        possible_topics = set()
-        for entity in entities:
-            if entity["score"] > 0.85 and entity["word"] not in topics:
-                topics.add(entity["word"])
+        pipe = pipeline(
+            "text-generation",
+            model="Qwen/Qwen2.5-3B-Instruct",
+            # load_in_4bit=True,
+        )
 
-        topics = list(possible_topics)
+        prompt = """Extract the main topics into a list of strings of 1-2 words.
+        It should come from the following text: {text}
+        The output should be the list and nothing else.
+        It should look like this: ["topic1", "topic2", "topic3"]
+        The list should contain up to {n_topics} topics. 
+        """
+
+        retry = 0
+        while retry < 3:
+            result = pipe(
+                prompt.format(n_topics=n_topics, text=text),
+                max_new_tokens=50,
+                do_sample=True,
+                return_full_text=False,
+            )
+            print(f"Result: {result}")
+            topics = result[0].get("generated_text", result[0].get("text", ""))
+            topics = re.search(r'\[(?:\s*"[^"]*"\s*,?)*\]', topics)
+            if not topics:
+                retry += 1
+                continue
+
+            try:
+                topics = topics.group(0)
+                topics = eval(topics)
+                break
+            except Exception as e:
+                print(f"Error evaluating topics: {e}")
+                retry += 1
+                continue
+
+        if retry == 3:
+            print("Failed to extract topics")
+            return []
+
+        print(f"Topics: {topics}")
+
         return topics
     else:
         prompt = f"""
