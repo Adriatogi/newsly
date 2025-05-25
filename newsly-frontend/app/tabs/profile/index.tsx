@@ -1,5 +1,6 @@
 import { Session } from "@supabase/supabase-js";
 import { useEffect, useState, Fragment } from "react";
+import { useColorScheme } from "react-native";
 import { supabase } from "@/lib/supabase";
 import NewslyIcon from "@/assets/images/newsly_icon_final.png";
 import Auth from "@/components/Auth";
@@ -19,6 +20,8 @@ import { FontAwesome } from "@expo/vector-icons";
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -120,8 +123,8 @@ export default function App() {
   };
 
   return (
-    <SafeAreaView>
-      <View style={styles.container}>
+    <SafeAreaView style={{ backgroundColor: isDark ? "#0B1724" : "#fff", flex: 1 }}>
+      <View style={[styles.container, { backgroundColor: isDark ? "#0B1724" : "#fff", flex: 1 }]}>
         {session ? (
           <View style={styles.profileContainer}>
             {avatarUrl ? (
@@ -162,7 +165,7 @@ export default function App() {
                 style={{ width: 72, height: 72, marginBottom: 16 }}
                 resizeMode="contain"
               />
-              <Text style={{ fontSize: 28, fontWeight: "bold", marginBottom: 8 }}>
+              <Text style={{ fontSize: 28, fontWeight: "bold", marginBottom: 8, color: isDark ? "#fff" : "#000" }}>
                 Welcome to Newsly
               </Text>
               <Text
@@ -170,7 +173,7 @@ export default function App() {
                   fontSize: 16,
                   textAlign: "center",
                   marginBottom: 24,
-                  color: "#444",
+                  color: isDark ? "#ccc" : "#444",
                 }}
               >
                 Compare, contrast, and contextualize related news articles from across
@@ -179,7 +182,7 @@ export default function App() {
               <TouchableOpacity
                 onPress={() => setSession(null)}
                 style={{
-                  backgroundColor: "#3B82F6",
+                  backgroundColor: isDark ? "#60A5FA" : "#3B82F6",
                   paddingVertical: 12,
                   paddingHorizontal: 32,
                   borderRadius: 8,
@@ -191,12 +194,12 @@ export default function App() {
                 </Text>
               </TouchableOpacity>
               <View style={{ marginBottom: 16 }}>
-                <Text style={{ fontSize: 16, marginBottom: 8 }}>✓ See multiple perspectives on current stories</Text>
-                <Text style={{ fontSize: 16, marginBottom: 8 }}>✓ Uncover political bias and misinformation</Text>
-                <Text style={{ fontSize: 16, marginBottom: 8 }}>✓ Explore contextual summaries of issues</Text>
+                <Text style={{ fontSize: 16, marginBottom: 8, color: isDark ? "#ddd" : "#000" }}>✓ See multiple perspectives on current stories</Text>
+                <Text style={{ fontSize: 16, marginBottom: 8, color: isDark ? "#ddd" : "#000"}}>✓ Uncover political bias and misinformation</Text>
+                <Text style={{ fontSize: 16, marginBottom: 8, color: isDark ? "#ddd" : "#000" }}>✓ Explore contextual summaries of issues</Text>
               </View>
               <TouchableOpacity onPress={() => setSession(null)}>
-                <Text style={{ color: "#3B82F6", fontWeight: "bold", marginTop: 16 }}>
+                <Text style={{ color: isDark ? "#60A5FA" : "#3B82F6", fontWeight: "bold", marginTop: 16 }}>
                   Already have an account? Sign In
                 </Text>
               </TouchableOpacity>
