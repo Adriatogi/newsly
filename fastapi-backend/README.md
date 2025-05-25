@@ -29,3 +29,5 @@ Steps to get it running
     python3 cli.py --help
 ```
 
+To deploy modal run 'modal deploy app/ml_modal.py'
+To test modal function, run 'modal run app/ml_modal.py::function_name'

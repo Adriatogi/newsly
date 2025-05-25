@@ -1,5 +1,6 @@
 import modal
 from typing import Any, Dict
+from dotenv import load_dotenv
 
 # settings for timeout
 IDLE_TIMEOUT = 60  # seconds
@@ -12,12 +13,17 @@ image = (
     .pip_install("torch")
     .pip_install("transformers")
     .pip_install("huggingface_hub[hf_xet]")
+    .pip_install("keybert")
+    .pip_install("python-dotenv")
 )
 app = modal.App(name="newsly-modal-test")
 
 
 # create a volume for huggingface cache
 hf_cache_vol = modal.Volume.from_name("huggingface-cache", create_if_missing=True)
+
+# load .env
+load_dotenv()
 
 
 @app.function(
@@ -90,14 +96,11 @@ async def political_lean(text: str) -> dict:
     probabilities_dict = {
         "left": float(probabilities[0]),
         "center": float(probabilities[1]),
-        "right": float(probabilities[2])
+        "right": float(probabilities[2]),
     }
 
-    data = {
-        "probabilities": probabilities_dict,
-        "predicted_lean": str(predicted_lean)
-    }
-    
+    data = {"probabilities": probabilities_dict, "predicted_lean": str(predicted_lean)}
+
     print("Final data structure being returned:", data)
     return data
 
@@ -108,25 +111,161 @@ async def political_lean(text: str) -> dict:
     volumes={"/root/.cache/huggingface": hf_cache_vol},
     scaledown_window=IDLE_TIMEOUT,
 )
-async def extract_topics(text: str) -> list[str]:
-    from transformers import pipeline, AutoTokenizer, AutoModelForTokenClassification
+async def get_keywords(text: str) -> dict:
+    from keybert import KeyBERT
 
-    topics = []
+    kw_model = KeyBERT()
+    keywords = kw_model.extract_keywords(text)
+    words = [keyword[0] for keyword in keywords]
+    return words
 
-    tokenizer = AutoTokenizer.from_pretrained("dslim/bert-base-NER")
-    model = AutoModelForTokenClassification.from_pretrained("dslim/bert-base-NER")
 
-    ner_pipeline = pipeline("ner", model=model, tokenizer=tokenizer)
-    entities = ner_pipeline(text)
+@app.function(
+    gpu="L40S",
+    image=image,
+    secrets=[modal.Secret.from_name("huggingface-secret")],
+    volumes={"/root/.cache/huggingface": hf_cache_vol},
+    scaledown_window=IDLE_TIMEOUT,
+)
+async def get_tag(text: str) -> str:
+    from transformers import pipeline
+    import re
+    import os
 
-    # Filter out entities with low confidence scores
-    # TODO: include confidence score in output to make it more transparent?
-    possible_topics = set()
-    for entity in entities:
-        if entity["score"] > 0.85 and entity["word"] not in possible_topics:
-            possible_topics.add(entity["word"])
+    hf_token = os.environ["HF_TOKEN"]
 
-    topics = list(possible_topics)
+    pipe = pipeline(
+        "text-generation",
+        model="meta-llama/Llama-3.1-8B-Instruct",
+        token=hf_token,
+        trust_remote_code=True,
+        # load_in_4bit=True,
+    )
+
+    prompt = """Given the following text;
+{text}
+
+    extract a single tag from the following list:
+•	Politics & Government
+•	Business & Economy
+•	Health & Science
+•	Technology & Innovation
+•	Social Issues & Inequality
+•	Crime & Law
+•	World Affairs
+•	Environment & Climate
+•	Culture & Entertainment
+•	Sports
+•	Education
+•	Opinion & Editorial
+•	Religion & Ethics
+
+The output should be the tag and nothing else.
+    """
+
+    retry = 0
+    while retry < 3:
+
+        result = pipe(
+            prompt.format(text=text),
+            max_new_tokens=10,
+            do_sample=True,
+            temperature=0.3,
+            return_full_text=False,
+            pad_token_id=pipe.tokenizer.eos_token_id,
+        )
+        print(result)
+
+        tag = result[0]["generated_text"].split("\n")[0].strip()
+        tag = re.sub(r"^[^\w\s&]+|[^\w\s&]+$", "", tag)
+
+        valid_tags = [
+            "Politics & Government",
+            "Business & Economy",
+            "Health & Science",
+            "Technology & Innovation",
+            "Social Issues & Inequality",
+            "Crime & Law",
+            "World Affairs",
+            "Environment & Climate",
+            "Culture & Entertainment",
+            "Sports",
+            "Education",
+            "Opinion & Editorial",
+            "Religion & Ethics",
+        ]
+
+        # Find the best match
+        if tag not in valid_tags:
+            retry += 1
+            print(f"Invalid tag: {tag}, retrying...")
+            continue
+
+        break
+
+    return tag
+
+
+@app.function(
+    gpu="L40S",
+    image=image,
+    secrets=[modal.Secret.from_name("huggingface-secret")],
+    volumes={"/root/.cache/huggingface": hf_cache_vol},
+    scaledown_window=IDLE_TIMEOUT,
+)
+async def extract_topics(text: str, n_topics: int = 3) -> list[str]:
+    from transformers import pipeline
+    import re
+
+    import os
+
+    hf_token = os.environ["HF_TOKEN"]
+
+    pipe = pipeline(
+        "text-generation",
+        model="meta-llama/Llama-3.1-8B-Instruct",
+        temperature=0.3,
+        token=hf_token,
+        # load_in_4bit=True,
+    )
+
+    prompt = """Extract the main topics into a list of strings of 1-2 words.
+    It should come from the following text: {text}
+    The output should be the list and nothing else.
+    It should look like this: ["topic1", "topic2", "topic3"]
+    The list should contain up to {n_topics} topics. 
+    """
+
+    retry = 0
+    while retry < 3:
+        result = pipe(
+            prompt.format(n_topics=n_topics, text=text),
+            max_new_tokens=50,
+            do_sample=True,
+            return_full_text=False,
+        )
+        print(f"Result: {result}")
+        topics = result[0]["generated_text"]
+        topics = re.search(r'\[(?:\s*"[^"]*"\s*,?)*\]', topics)
+        if not topics:
+            retry += 1
+            continue
+
+        try:
+            topics = topics.group(0)
+            topics = eval(topics)
+            break
+        except Exception as e:
+            print(f"Error evaluating topics: {e}")
+            retry += 1
+            continue
+
+    if retry == 3:
+        print("Failed to extract topics")
+        return []
+
+    print(f"Topics: {topics}")
+
     return topics
 
 
@@ -160,7 +299,9 @@ async def contextualize_article(text: str, topics: list[str]) -> dict:
     volumes={"/root/.cache/huggingface": hf_cache_vol},
     scaledown_window=IDLE_TIMEOUT,
 )
-async def lean_explanation(text: str, predicted_lean: str, lean_probability: float) -> str:
+async def lean_explanation(
+    text: str, predicted_lean: str, lean_probability: float
+) -> str:
     """
     Generate an explanation for the predicted political lean of an article.
     """
@@ -171,7 +312,7 @@ async def lean_explanation(text: str, predicted_lean: str, lean_probability: flo
     # Load tokenizer to check input length
     tokenizer = AutoTokenizer.from_pretrained("google/flan-t5-large")
     tokens = tokenizer.encode(text)
-    
+
     # Truncate text if it's too long (leave room for the prompt)
     max_input_tokens = 200  # Reduced to ensure we're well under 512 token limit
     if len(tokens) > max_input_tokens:
@@ -184,7 +325,9 @@ async def lean_explanation(text: str, predicted_lean: str, lean_probability: flo
     Your analysis must consider: topics, word choice, framing, and perspective.
 
     Analysis:"""
-    explanation = explainer(prompt, max_new_tokens=1024, do_sample=True, temperature=0.7)
+    explanation = explainer(
+        prompt, max_new_tokens=1024, do_sample=True, temperature=0.7
+    )
     result = explanation[0].get("generated_text", explanation[0].get("text", ""))
     print("\nGenerated explanation:", result)
     return result
