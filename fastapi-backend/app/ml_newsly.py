@@ -4,6 +4,7 @@ from app.newsly_types import (
     LogicalFallacyServerList,
     LogicalFallacyListAPI,
     LogicalFallacyComplete,
+    CombinedAnalysisAPI,
 )
 from app.clients import generate_together
 from app.utils import extract_json
@@ -401,6 +402,108 @@ async def get_logical_fallacies(text: str, sequential: bool = False) -> dict:
         presenting_other_side=presenting_other_side,
         scapegoating=scapegoating,
     )
+
+
+async def get_combined_logical_fallacies(text: str) -> LogicalFallacyComplete:
+    """
+    Get all logical fallacies using a single combined prompt.
+    """
+    if utils.TEST:
+        print("Test active combined logical fallacies")
+        # Return test data for all categories
+        test_fallacy = LogicalFallacyServer(
+            reason="Test active combined analysis",
+            quote="Test active combined analysis",
+            rating=1,
+            explanation="Test active combined analysis",
+        )
+        test_list = LogicalFallacyServerList(
+            logical_fallacies=[test_fallacy], error=None
+        )
+
+        return LogicalFallacyComplete(
+            ad_hominem=test_list,
+            discrediting_sources=test_list,
+            emotion_fallacy=test_list,
+            false_dichotomy=test_list,
+            fear_mongering=test_list,
+            good_sources=test_list,
+            non_sequitur=test_list,
+            presenting_other_side=test_list,
+            scapegoating=test_list,
+        )
+
+    print("Running combined logical fallacies analysis")
+
+    prompt = prompts.combined_analysis.format(text=text)
+
+    try:
+        messages = [
+            {
+                "role": "system",
+                "content": "You are a helpful assistant that analyzes text for logical fallacies and rhetorical elements.",
+            },
+            {"role": "user", "content": prompt},
+        ]
+
+        response = generate_together(
+            model="meta-llama/Llama-3.3-70B-Instruct-Turbo",
+            messages=messages,
+            max_tokens=3096,  # Increased for combined analysis
+            temperature=0.7,
+            response_format={
+                "type": "json_object",
+                "schema": CombinedAnalysisAPI.model_json_schema(),
+            },
+        )
+
+        json_response = CombinedAnalysisAPI.model_validate_json(response)
+
+        # Convert the combined response to LogicalFallacyComplete
+        result = LogicalFallacyComplete()
+
+        for category, fallacies in json_response.analysis.items():
+            logical_fallacies_complete = []
+
+            for fallacy in fallacies:
+                # Check that quote actually exists in the text
+                if fallacy.quote is None or fallacy.quote == "":
+                    continue
+
+                logical_fallacies_complete.append(
+                    LogicalFallacyServer(
+                        reason=fallacy.reason,
+                        quote=fallacy.quote,
+                        rating=fallacy.rating,
+                        explanation=fallacy.explanation,
+                    )
+                )
+
+            fallacy_list = LogicalFallacyServerList(
+                logical_fallacies=logical_fallacies_complete, error=None
+            )
+
+            # Set the appropriate attribute on the result object
+            setattr(result, category, fallacy_list)
+
+        return result
+
+    except Exception as e:
+        print(f"Error getting combined logical fallacies: {e}")
+        # Return empty lists with error for all categories
+        error_list = LogicalFallacyServerList(logical_fallacies=[], error=str(e))
+
+        return LogicalFallacyComplete(
+            ad_hominem=error_list,
+            discrediting_sources=error_list,
+            emotion_fallacy=error_list,
+            false_dichotomy=error_list,
+            fear_mongering=error_list,
+            good_sources=error_list,
+            non_sequitur=error_list,
+            presenting_other_side=error_list,
+            scapegoating=error_list,
+        )
 
 
 async def get_logical_fallacy_response(

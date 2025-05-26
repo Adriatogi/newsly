@@ -249,3 +249,122 @@ Note: You can only include up to 3 examples maximum, so choose the most signific
 
 JSON Response:
 """
+
+combined_analysis = """
+Instructions: Analyze the following text for multiple logical fallacies and rhetorical elements. For each category found, provide quotes and ratings from 1 (slight) to 5 (extreme).
+
+Categories to analyze:
+
+1. **Ad Hominem**: Attacks on character rather than argument substance
+   - Criteria: Relevance to argument, character vs. behavior criticism, contextual justification
+
+2. **Discrediting Sources**: Explicit undermining of reputable sources' credibility
+   - Focus on direct criticism of integrity, accuracy, or reliability
+
+3. **Appeal to Emotion**: Emotional manipulation replacing rational argument
+   - Look for fear tactics, "think of the children" rhetoric, emotional manipulation
+
+4. **False Dichotomy**: Presenting only two exclusive outcomes, ignoring other possibilities
+   - Distinguish from legitimate trade-off discussions
+
+5. **Fear Mongering**: Unjustifiably inciting fear about potential dire outcomes
+   - Consider context, intent, and evidence support
+
+6. **Non-Sequitur**: Statements that don't follow logically from previous content
+   - Look for irrelevant reasoning and invalid inferences
+
+7. **Scapegoating**: Unfairly blaming a person/group without merit
+   - Assess justification, context, and correlation vs. causation
+
+8. **Good Sources**: Explicit use of reputable, credible sources with concrete statistics
+   - Focus on authoritative entities providing factual data
+
+9. **Presenting Other Side**: Balanced presentation of two reasoned arguments
+   - Look for substantive arguments, clarity, and fair representation
+
+Text to analyze:
+{text}
+
+The response MUST follow this exact JSON schema:
+{{
+  "analysis": {{
+    "ad_hominem": [
+      {{
+        "quote": "exact quote from text",
+        "reason": "detailed explanation referencing relevance, character vs. behavior, context",
+        "explanation": "confidence assessment based on criteria",
+        "rating": integer between 1-5
+      }}
+    ],
+    "discrediting_sources": [
+      {{
+        "quote": "exact quote from text",
+        "reason": "detailed explanation of how source is being discredited",
+        "explanation": "confidence assessment",
+        "rating": integer between 1-5
+      }}
+    ],
+    "emotion_fallacy": [
+      {{
+        "quote": "exact quote from text",
+        "reason": "detailed explanation of emotional manipulation",
+        "explanation": "confidence assessment",
+        "rating": integer between 1-5
+      }}
+    ],
+    "false_dichotomy": [
+      {{
+        "quote": "exact quote from text",
+        "reason": "explanation of false binary choice presentation",
+        "explanation": "confidence assessment",
+        "rating": integer between 1-5
+      }}
+    ],
+    "fear_mongering": [
+      {{
+        "quote": "exact quote from text",
+        "reason": "explanation of unjustified fear incitement, referencing context/intent/evidence",
+        "explanation": "confidence assessment based on criteria",
+        "rating": integer between 1-5
+      }}
+    ],
+    "non_sequitur": [
+      {{
+        "quote": "exact quote from text",
+        "reason": "explanation of logical disconnect",
+        "explanation": "confidence assessment",
+        "rating": integer between 1-5
+      }}
+    ],
+    "scapegoating": [
+      {{
+        "quote": "exact quote from text",
+        "reason": "explanation of unjustified blame assignment",
+        "explanation": "confidence assessment",
+        "rating": integer between 1-5
+      }}
+    ],
+    "good_sources": [
+      {{
+        "quote": "exact quote from text",
+        "reason": "explanation of source credibility and value",
+        "explanation": "confidence assessment",
+        "rating": integer between 1-5
+      }}
+    ],
+    "presenting_other_side": [
+      {{
+        "quote": "exact quote from text",
+        "reason": "explanation of balanced argument presentation",
+        "explanation": "confidence assessment",
+        "rating": integer between 1-5
+      }}
+    ]
+  }}
+}}
+
+For categories with no instances found, use empty arrays: []
+Maximum 3 examples per category for scapegoating and presenting_other_side.
+
+JSON Response:
+"""

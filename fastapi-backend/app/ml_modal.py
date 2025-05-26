@@ -1,7 +1,7 @@
 import modal
 from typing import Any, Dict
 from dotenv import load_dotenv
-from prompts import (
+from app.prompts import (
     ad_hominem,
     discrediting_sources,
     emotion_fallacy,

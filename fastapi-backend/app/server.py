@@ -10,6 +10,7 @@ from app.ml_newsly import (
     extract_topics,
     contextualize_article,
     get_logical_fallacies,
+    get_combined_logical_fallacies,
     lean_explanation,
 )
 from app.utils import normalize_url, parse_article, NewslyArticle
@@ -148,7 +149,7 @@ async def analyze_article(article: NewslyArticle, no_modal: bool = NO_MODAL) -> 
         summary = await llm_summarize(article.text)
         lean = await political_lean(article.text)
         topics = await extract_topics(article.text)
-        logical_fallacies = await get_logical_fallacies(article.text)
+        logical_fallacies = await get_combined_logical_fallacies(article.text)
         lean_explanation_text = await lean_explanation(
             article.text,
             lean["predicted_lean"],
@@ -161,7 +162,7 @@ async def analyze_article(article: NewslyArticle, no_modal: bool = NO_MODAL) -> 
         topics = modal_extract_topics.remote.aio(article.text)
         keywords = modal_get_keywords.remote.aio(article.text)
         tag = modal_get_tag.remote.aio(article.text)
-        logical_fallacies = get_modal_logical_fallacies(article.text)
+        logical_fallacies = get_combined_logical_fallacies(article.text)
         summary, lean, topics, keywords, tag, logical_fallacies = await asyncio.gather(
             summary, lean, topics, keywords, tag, logical_fallacies
         )
