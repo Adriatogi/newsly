@@ -285,86 +285,9 @@ Categories to analyze:
 Text to analyze:
 {text}
 
-The response MUST follow this exact JSON schema:
-{{
-  "analysis": {{
-    "ad_hominem": [
-      {{
-        "quote": "exact quote from text",
-        "reason": "detailed explanation referencing relevance, character vs. behavior, context",
-        "explanation": "confidence assessment based on criteria",
-        "rating": integer between 1-5
-      }}
-    ],
-    "discrediting_sources": [
-      {{
-        "quote": "exact quote from text",
-        "reason": "detailed explanation of how source is being discredited",
-        "explanation": "confidence assessment",
-        "rating": integer between 1-5
-      }}
-    ],
-    "emotion_fallacy": [
-      {{
-        "quote": "exact quote from text",
-        "reason": "detailed explanation of emotional manipulation",
-        "explanation": "confidence assessment",
-        "rating": integer between 1-5
-      }}
-    ],
-    "false_dichotomy": [
-      {{
-        "quote": "exact quote from text",
-        "reason": "explanation of false binary choice presentation",
-        "explanation": "confidence assessment",
-        "rating": integer between 1-5
-      }}
-    ],
-    "fear_mongering": [
-      {{
-        "quote": "exact quote from text",
-        "reason": "explanation of unjustified fear incitement, referencing context/intent/evidence",
-        "explanation": "confidence assessment based on criteria",
-        "rating": integer between 1-5
-      }}
-    ],
-    "non_sequitur": [
-      {{
-        "quote": "exact quote from text",
-        "reason": "explanation of logical disconnect",
-        "explanation": "confidence assessment",
-        "rating": integer between 1-5
-      }}
-    ],
-    "scapegoating": [
-      {{
-        "quote": "exact quote from text",
-        "reason": "explanation of unjustified blame assignment",
-        "explanation": "confidence assessment",
-        "rating": integer between 1-5
-      }}
-    ],
-    "good_sources": [
-      {{
-        "quote": "exact quote from text",
-        "reason": "explanation of source credibility and value",
-        "explanation": "confidence assessment",
-        "rating": integer between 1-5
-      }}
-    ],
-    "presenting_other_side": [
-      {{
-        "quote": "exact quote from text",
-        "reason": "explanation of balanced argument presentation",
-        "explanation": "confidence assessment",
-        "rating": integer between 1-5
-      }}
-    ]
-  }}
-}}
 
 For categories with no instances found, use empty arrays: []
-Maximum 3 examples per category for scapegoating and presenting_other_side.
+Maximum 3 examples per category for all categories.
 
 JSON Response:
 """
