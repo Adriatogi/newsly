@@ -446,7 +446,7 @@ async def get_combined_logical_fallacies(text: str) -> LogicalFallacyComplete:
             {"role": "user", "content": prompt},
         ]
 
-        response = generate_together(
+        response = await generate_together(
             model="meta-llama/Llama-3.3-70B-Instruct-Turbo",
             messages=messages,
             max_tokens=3096,  # Increased for combined analysis
