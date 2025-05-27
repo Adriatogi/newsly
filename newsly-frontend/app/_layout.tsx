@@ -5,9 +5,19 @@ import { Slot, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
+import { PostHogProvider, usePostHog } from 'posthog-react-native';
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
+
+// Test event component for PostHog
+const TestEventComponent = () => {
+  const posthog = usePostHog();
+  useEffect(() => {
+    posthog.capture('test_event', { test: true });
+  }, []);
+  return null;
+};
 
 export default function RootLayout() {
   const router = useRouter();
@@ -37,9 +47,15 @@ export default function RootLayout() {
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <StatusBar style="dark" backgroundColor="#ffffff" />
-      <Slot />
-    </GestureHandlerRootView>
+    <PostHogProvider
+      apiKey="phc_sUx7Ac14ozlcNQiEBhE2NyjwQE65DbKSJtgLalUL0xB"
+      options={{ host: "https://us.i.posthog.com" }}
+    >
+      <TestEventComponent />
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <StatusBar style="dark" backgroundColor="#ffffff" />
+        <Slot />
+      </GestureHandlerRootView>
+    </PostHogProvider>
   );
 }
