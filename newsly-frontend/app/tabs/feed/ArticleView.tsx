@@ -40,6 +40,7 @@ export default function ArticleView() {
     summary,
     biasScore,
     contextualization,
+    bias_explanation,
     logical_fallacies,
     authors,
     published_date,
@@ -244,6 +245,9 @@ export default function ArticleView() {
             {renderBiasBar()}
             {sections["Political Bias Analysis"] && (
               <View style={s.highlights}>
+                {bias_explanation && (
+                  <Text style={s.body}>{bias_explanation as string}</Text>
+                )}
                 {Array.from(biasAnalysisMap.entries()).map(([quote, color]) => (
                   <Text key={quote} style={color === "blue" ? s.blue : s.red}>
                     {`"${quote}"`}
