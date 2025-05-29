@@ -182,8 +182,11 @@ async def llm_summarize(text: str, max_length: int = 130, min_length: int = 40) 
         summary = generate_together(
             model="meta-llama/Llama-3.3-70B-Instruct-Turbo",
             messages=messages,
-            max_tokens=1024,
+            max_tokens=130,
             temperature=0.0,
+            do_sample=False,
+            num_beams=4,
+            early_stopping=True,
         )
 
         # Extract the summary from the response

@@ -58,7 +58,8 @@ def summarize(text: str) -> str:
         max_length=130,
         min_length=40,
         do_sample=False,
-        temperature=0.0,  # more deterministic, less hallucination
+        num_beams=4,
+        early_stopping=True
     )
     print("summary:", summary)
     return summary[0]["summary_text"]
