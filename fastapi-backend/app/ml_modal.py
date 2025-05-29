@@ -53,10 +53,14 @@ def summarize(text: str) -> str:
 
     # Summarizer pipeline
     summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
-    summary = summarizer(text, max_length=130, min_length=40, do_sample=False)
-
+    summary = summarizer(
+        text,
+        max_length=130,
+        min_length=40,
+        do_sample=False,
+        temperature=0.0,  # more deterministic, less hallucination
+    )
     print("summary:", summary)
-
     return summary[0]["summary_text"]
 
 
@@ -213,10 +217,9 @@ The output should be the tag and nothing else.
     volumes={"/root/.cache/huggingface": hf_cache_vol},
     scaledown_window=IDLE_TIMEOUT,
 )
-async def extract_topics(text: str, n_topics: int = 3) -> list[str]:
+async def extract_topics(text: str, n_topics: int = 3) -> dict:
     from transformers import pipeline
     import re
-
     import os
 
     hf_token = os.environ["HF_TOKEN"]
@@ -262,35 +265,57 @@ async def extract_topics(text: str, n_topics: int = 3) -> list[str]:
 
     if retry == 3:
         print("Failed to extract topics")
-        return []
+        return {"topics": []}
 
     print(f"Topics: {topics}")
-
-    return topics
+    return {"topics": topics}
 
 
 @app.function(
     gpu="L4",
     image=image,
+    secrets=[modal.Secret.from_name("huggingface-secret")],
     volumes={"/root/.cache/huggingface": hf_cache_vol},
     scaledown_window=IDLE_TIMEOUT,
 )
-async def contextualize_article(text: str, topics: list[str]) -> dict:
+async def contextualize_article(text: str) -> dict:
     from transformers import pipeline
+    import os
+    import re
 
+    hf_token = os.environ["HF_TOKEN"]
+
+    # First extract topics
+    topics_result = extract_topics.remote(text)
+    topics = topics_result["topics"]
+    
+    # Then generate contextualization using Llama
     context_pipe = pipeline(
-        "text2text-generation", model="google/flan-t5-large", device=0
+        "text-generation",
+        model="TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+        token=hf_token,
+        temperature=0.3,
     )
-    prompt = (
-        "You are an expert in modern and historical political discourse.\n\n"
-        f"Article excerpt:\n{text}\n\n"
-        f"Key topics: {', '.join(topics)}\n\n"
-        "Please return a JSON object with fields 'topics' and 'contextualization', where 'contextualization' is 1-2 concise paragraphs relating the topics to the article."
+
+    prompt = f"""You are an expert analyst of political, cultural, and historical discourse.
+
+    Given the article excerpt: {text}
+    and the following topics identified within it: {', '.join(topics)}
+
+    Write a single, concise paragraph that analyzes how historical, cultural, and political factors relate to and shape these topics in the context of the article. Do not include headings, bullet points, or lists. Your response should be fluid, academic in tone, and approximately 5–6 sentences long. Output only the paragraph.
+
+    Contextualization:"""
+
+    result = context_pipe(
+        prompt,
+        max_new_tokens=512,
+        do_sample=True,
+        return_full_text=False,
     )
-    contextualization = context_pipe(prompt, max_length=1024, do_sample=False)
-    return contextualization[0].get(
-        "generated_text", contextualization[0].get("text", "")
-    )
+    
+    contextualization = result[0]["generated_text"].strip()
+    print("Contextualization:", contextualization)
+    return contextualization
 
 
 @app.function(

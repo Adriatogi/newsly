@@ -183,19 +183,19 @@ async def llm_summarize(text: str, max_length: int = 130, min_length: int = 40) 
             model="meta-llama/Llama-3.3-70B-Instruct-Turbo",
             messages=messages,
             max_tokens=1024,
-            temperature=0.7,
+            temperature=0.0,
         )
 
         # Extract the summary from the response
         return summary
 
 
-async def extract_topics(text: str) -> list[str]:
+async def extract_topics(text: str) -> dict:
     topics = []
 
     if utils.TEST:
         print("Test active topic scrapping")
-        return ["topic_1", "topic_2"]
+        return {"topics": ["topic_1", "topic_2"]}
 
     if device == "cuda":
         from transformers import pipeline
@@ -214,6 +214,7 @@ async def extract_topics(text: str) -> list[str]:
         The list should contain up to {n_topics} topics. 
         """
 
+        n_topics = 3
         retry = 0
         while retry < 3:
             result = pipe(
@@ -223,14 +224,14 @@ async def extract_topics(text: str) -> list[str]:
                 return_full_text=False,
             )
             print(f"Result: {result}")
-            topics = result[0].get("generated_text", result[0].get("text", ""))
-            topics = re.search(r'\[(?:\s*"[^"]*"\s*,?)*\]', topics)
-            if not topics:
+            topics_str = result[0].get("generated_text", result[0].get("text", ""))
+            topics_match = re.search(r'\[(?:\s*"[^"]*"\s*,?)*\]', topics_str)
+            if not topics_match:
                 retry += 1
                 continue
 
             try:
-                topics = topics.group(0)
+                topics = topics_match.group(0)
                 topics = eval(topics)
                 break
             except Exception as e:
@@ -240,11 +241,11 @@ async def extract_topics(text: str) -> list[str]:
 
         if retry == 3:
             print("Failed to extract topics")
-            return []
+            return {"topics": []}
 
         print(f"Topics: {topics}")
 
-        return topics
+        return {"topics": topics}
     else:
         prompt = f"""
             Extract the key political, historical, and cultural topics related to the following text.
@@ -271,7 +272,7 @@ async def extract_topics(text: str) -> list[str]:
         )
 
         topics = [topic.strip() for topic in response.split(",")]
-        return topics
+        return {"topics": topics}
 
 
 async def get_topic_background(topic: str) -> str:
@@ -295,65 +296,54 @@ async def get_topic_background(topic: str) -> str:
     return background.strip()
 
 
-async def contextualize_article(text: str, topics: list[str]) -> dict:
+async def contextualize_article(text: str) -> str:
     if utils.TEST:
         print("Test active contextualization")
-        return {
-            "topics": topics,
-            "contextualization": "Test active contextualization of the article's broader context.",
-        }
+        return "Test active contextualization of the article's broader context."
 
-    if device == "cuda":
-        context_pipe = pipeline(
-            "text2text-generation", model="google/flan-t5-large", device=0
-        )
-        prompt = (
-            "You are an expert in modern and historical political discourse.\n\n"
-            f"Article excerpt:\n{text}\n\n"
-            f"Key topics: {', '.join(topics)}\n\n"
-            "Please return a JSON object with fields 'topics' and 'contextualization', where 'contextualization' is 1-2 concise paragraphs relating the topics to the article."
-        )
-        contextualization = context_pipe(prompt, max_length=1024, do_sample=False)
-        return contextualization[0].get(
-            "generated_text", contextualization[0].get("text", "")
-        )
+    # First extract topics
+    topics_result = await extract_topics(text)
+    topics = topics_result.get("topics", [])
 
-    else:
-        prompt = f"""
-        You are an expert analyst of political, cultural, and historical discourse.
+    # Use TinyLlama or similar small model if available, otherwise fallback to generate_together
+    try:
+        from transformers import pipeline
+        import os
+        hf_token = os.environ.get("HF_TOKEN", None)
+        if hf_token:
+            context_pipe = pipeline(
+                "text-generation",
+                model="TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+                token=hf_token,
+                temperature=0.3,
+            )
+            prompt = f"""You are an expert analyst of political, cultural, and historical discourse.\n\nGiven the article excerpt: {text}\nand the following topics identified within it: {', '.join(topics)}\n\nWrite a single, concise paragraph that analyzes how historical, cultural, and political factors relate to and shape these topics in the context of the article. Do not include headings, bullet points, or lists. Your response should be fluid, academic in tone, and approximately 5–6 sentences long. Output only the paragraph.\n"""
+            result = context_pipe(
+                prompt,
+                max_new_tokens=192,
+                do_sample=True,
+                return_full_text=False,
+            )
+            contextualization = result[0]["generated_text"].strip()
+            print("Contextualization:", contextualization)
+            return contextualization
+    except Exception as e:
+        print("Falling back to generate_together due to:", e)
 
-        Article excerpt:
-        {text}
-
-        Key extracted topics:
-        {', '.join(topics)}
-
-        Please provide a nuanced discussion (1-2 concise paragraphs) of the historical,
-        cultural, and political context that informs these topics as they appear
-        in the article. The topics are related to the article and must be referenced. The relevance of topics
-        to the articlemust be mentioned in the contextualization.
-        Return a JSON object with the fields:
-        {{
-        "topics": [...],               
-        "contextualization": "..."     
-        }}
-        """
-
-        messages = [
-            {
-                "role": "system",
-                "content": "You are a knowledgeable, unbiased expert providing contextual analysis.",
-            },
-            {"role": "user", "content": prompt},
-        ]
-        contextualization = generate_together(
-            model="meta-llama/Llama-3.3-70B-Instruct-Turbo",
-            messages=messages,
-            max_tokens=1024,
-            temperature=0.7,
-        )
-
-        return contextualization
+    # Fallback: use generate_together API
+    prompt = f"""You are an expert analyst of political, cultural, and historical discourse.\n\nGiven the article excerpt: {text}\nand the following topics identified within it: {', '.join(topics)}\n\nWrite a single, concise paragraph that analyzes how historical, cultural, and political factors relate to and shape these topics in the context of the article. Do not include headings, bullet points, or lists. Your response should be fluid, academic in tone, and approximately 5–6 sentences long. Output only the paragraph.\n"""
+    messages = [
+        {"role": "system", "content": "You are a knowledgeable, unbiased expert providing contextual analysis."},
+        {"role": "user", "content": prompt},
+    ]
+    contextualization = generate_together(
+        model="meta-llama/Llama-3.3-70B-Instruct-Turbo",
+        messages=messages,
+        max_tokens=192,
+        temperature=0.7,
+    )
+    print("Contextualization:", contextualization)
+    return contextualization
 
 
 async def get_logical_fallacies(text: str, sequential: bool = False) -> dict:
