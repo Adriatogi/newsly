@@ -23,6 +23,23 @@ class LogicalFallacyListAPI(BaseModel):
     )
 
 
+class CombinedAnalysisAPI(BaseModel):
+    analysis: dict[str, list[LogicalFallacyAPI]] = Field(
+        description="Analysis results organized by fallacy type",
+        default_factory=lambda: {
+            "ad_hominem": [],
+            "discrediting_sources": [],
+            "emotion_fallacy": [],
+            "false_dichotomy": [],
+            "fear_mongering": [],
+            "non_sequitur": [],
+            "scapegoating": [],
+            "good_sources": [],
+            "presenting_other_side": [],
+        },
+    )
+
+
 # This is the final output to the server (where it is a list of LogicalFallaciesComplete)
 @dataclass
 class LogicalFallacyServer:

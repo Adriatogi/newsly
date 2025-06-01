@@ -1,6 +1,19 @@
 import modal
 from typing import Any, Dict
 from dotenv import load_dotenv
+from app.prompts import (
+    ad_hominem,
+    discrediting_sources,
+    emotion_fallacy,
+    false_dichotomy_fallacy,
+    fear_mongering_fallacy,
+    good_sources,
+    non_sequitur,
+    presenting_other_side,
+    scapegoating,
+)
+import json
+import re
 
 # settings for timeout
 IDLE_TIMEOUT = 60  # seconds
@@ -331,3 +344,152 @@ async def lean_explanation(
     result = explanation[0].get("generated_text", explanation[0].get("text", ""))
     print("\nGenerated explanation:", result)
     return result
+
+
+@app.function(
+    gpu="A100-80GB",
+    image=image,
+    secrets=[modal.Secret.from_name("huggingface-secret")],
+    volumes={"/root/.cache/huggingface": hf_cache_vol},
+    scaledown_window=IDLE_TIMEOUT,
+    timeout=600,
+)
+async def get_logical_fallacies(text: str, fallacy_type: str, prompt: str) -> dict:
+    """
+    Detect logical fallacies in text using Llama 3.1-8B-Instruct.
+    """
+    from transformers import AutoTokenizer, AutoModelForCausalLM
+    import os
+
+    hf_token = os.environ["HF_TOKEN"]
+
+    # Explicitly set cache directory
+    os.environ["HF_HOME"] = "/root/.cache/huggingface"
+    os.environ["TRANSFORMERS_CACHE"] = "/root/.cache/huggingface"
+
+    formatted_prompt = prompt.format(text=text)
+    print(f"Formatted prompt: {formatted_prompt}")
+
+    # Load with explicit cache directory
+    tokenizer = AutoTokenizer.from_pretrained(
+        "mistralai/Mixtral-8x7B-Instruct-v0.1",
+        token=hf_token,
+        cache_dir="/root/.cache/huggingface",
+    )
+
+    # Set pad token if it doesn't exist
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
+
+    model = AutoModelForCausalLM.from_pretrained(
+        "mistralai/Mixtral-8x7B-Instruct-v0.1",
+        token=hf_token,
+        cache_dir="/root/.cache/huggingface",
+    )
+
+    retry = 0
+    max_retries = 3
+    error = None
+
+    while retry < max_retries:
+        try:
+            inputs = tokenizer(
+                formatted_prompt,
+                return_tensors="pt",
+                padding=True,
+                truncation=True,
+                max_length=2048,
+            )
+            outputs = model.generate(
+                inputs.input_ids,
+                attention_mask=inputs.attention_mask,  # Add attention mask
+                max_new_tokens=1024,
+                do_sample=True,
+                temperature=0.7,
+                pad_token_id=tokenizer.eos_token_id,  # Set pad token ID
+            )
+            response_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
+
+            # Remove the input prompt from response
+            response_text = response_text[len(formatted_prompt) :].strip()
+
+            print(f"Raw response for {fallacy_type}: {response_text}")
+
+            json_response = extract_json(response_text)
+
+            if json_response and "logical_fallacies" in json_response:
+                # Validate the structure
+                logical_fallacies = json_response["logical_fallacies"]
+
+                # Filter out fallacies with missing quotes
+                valid_fallacies = []
+                for fallacy in logical_fallacies:
+                    if (
+                        isinstance(fallacy, dict)
+                        and fallacy.get("quote")
+                        and fallacy.get("reason")
+                        and fallacy.get("explanation")
+                        and fallacy.get("rating")
+                    ):
+                        valid_fallacies.append(
+                            {
+                                "quote": fallacy["quote"],
+                                "reason": fallacy["reason"],
+                                "explanation": fallacy["explanation"],
+                                "rating": int(fallacy["rating"]),
+                            }
+                        )
+
+                return {"logical_fallacies": valid_fallacies, "error": None}
+            else:
+                print(f"Invalid JSON response for {fallacy_type}, retrying...")
+                retry += 1
+                continue
+
+        except Exception as e:
+            print(f"Error processing {fallacy_type}: {e}")
+            error = e
+            retry += 1
+            continue
+
+    # If all retries failed
+    return {
+        "logical_fallacies": [],
+        "error": f"Failed to process {fallacy_type} after {max_retries} retries. Last error: {error}",
+    }
+
+
+# since we are using a modal function, we can't use the utils.py file
+def extract_json(text: str):
+    block_matches = list(re.finditer(r"```(?:json)?\\s*(.*?)```", text, re.DOTALL))
+    bracket_matches = list(re.finditer(r"\{.*?\}", text, re.DOTALL))
+
+    # SE(01/20/2025): we take the last match because the model may output
+    # multiple JSON blocks and often
+    if block_matches:
+        json_str = block_matches[-1].group(1).strip()
+    elif bracket_matches:
+        json_str = bracket_matches[-1].group(0)
+    else:
+        json_str = text
+
+    # Clean up the string - handle escaped newlines and nested JSON
+    json_str = json_str.replace("\\n", "\n").replace('\\"', '"')
+
+    try:
+        # First try direct parsing
+        json_obj = json.loads(json_str)
+        return json_obj
+    except json.JSONDecodeError:
+        try:
+            # Try with regex to extract JSON objects from text that might contain other content
+            matches = re.findall(
+                r"\{(?:[^{}]|(?:\{(?:[^{}]|(?:\{[^{}]*\}))*\}))*\}", json_str
+            )
+            if matches:
+                return json.loads(matches[0])
+        except:
+            pass
+
+        # If all parsing attempts fail
+        return None

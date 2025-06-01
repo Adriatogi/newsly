@@ -5,7 +5,7 @@ import click
 from app.server import process_article_db, analyze_article
 import app.utils as utils
 from app.utils import parse_article
-from app.ml_newsly import get_logical_fallacies
+from app.ml_newsly import get_combined_logical_fallacies
 from app.ml_modal import extract_topics
 import dataclasses
 
@@ -130,7 +130,7 @@ def get_logical(url, json_output, test, sequential):
         raise click.ClickException("Failed to fetch or parse the URL")
 
     text = article.text
-    result = asyncio.run(get_logical_fallacies(text, sequential=sequential))
+    result = asyncio.run(get_combined_logical_fallacies(text))
 
     if json_output:
         # Convert each LogicalFallacies object to a dict
