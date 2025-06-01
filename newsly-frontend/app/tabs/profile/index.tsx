@@ -1,6 +1,5 @@
 import { Session } from "@supabase/supabase-js";
 import { useEffect, useState, Fragment } from "react";
-import { useColorScheme } from "react-native";
 import { supabase } from "@/lib/supabase";
 import NewslyIcon from "@/assets/images/newsly_icon_final.png";
 import Auth from "@/components/Auth";
@@ -12,6 +11,7 @@ import {
   Image,
   TouchableOpacity,
   Modal,
+  useColorScheme,
   TextInput,
   ActivityIndicator,
 } from "react-native";
@@ -20,6 +20,7 @@ import { FontAwesome } from "@expo/vector-icons";
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
+  const [authModalVisible, setAuthModalVisible] = useState(false);
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
 
@@ -31,6 +32,7 @@ export default function App() {
     supabase.auth.onAuthStateChange(
       (_event: string, session: Session | null) => {
         setSession(session);
+        if (session) setAuthModalVisible(false);
       }
     );
   }, []);
@@ -134,8 +136,12 @@ export default function App() {
                 <FontAwesome name="user-circle" size={100} color="#ccc" />
               </View>
             )}
-            <Text style={styles.email}>{session.user.email}</Text>
-            <Text style={styles.name}>{fullName || username}</Text>
+            <Text style={[styles.email, { color: isDark ? "#ccc" : "#000" }]}>
+              {session.user.email}
+            </Text>
+            <Text style={[styles.name, { color: isDark ? "#eee" : "#555" }]}>
+              {fullName || username}
+            </Text>
 
             <TouchableOpacity
               style={styles.editButton}
@@ -180,7 +186,7 @@ export default function App() {
                 the political spectrum.
               </Text>
               <TouchableOpacity
-                onPress={() => setSession(null)}
+                onPress={() => setAuthModalVisible(true)}
                 style={{
                   backgroundColor: isDark ? "#60A5FA" : "#3B82F6",
                   paddingVertical: 12,
@@ -198,7 +204,7 @@ export default function App() {
                 <Text style={{ fontSize: 16, marginBottom: 8, color: isDark ? "#ddd" : "#000"}}>✓ Uncover political bias and misinformation</Text>
                 <Text style={{ fontSize: 16, marginBottom: 8, color: isDark ? "#ddd" : "#000" }}>✓ Explore contextual summaries of issues</Text>
               </View>
-              <TouchableOpacity onPress={() => setSession(null)}>
+              <TouchableOpacity onPress={() => setAuthModalVisible(true)}>
                 <Text style={{ color: isDark ? "#60A5FA" : "#3B82F6", fontWeight: "bold", marginTop: 16 }}>
                   Already have an account? Sign In
                 </Text>
@@ -271,6 +277,20 @@ export default function App() {
               </View>
             </View>
           </View>
+        </Modal>
+
+        <Modal
+          visible={authModalVisible}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={() => setAuthModalVisible(false)}
+        >
+          <SafeAreaView style={{ flex: 1, backgroundColor: isDark ? "#0B1724" : "#fff" }}>
+            <Auth onAuthSuccess={() => setAuthModalVisible(false)} />
+            <TouchableOpacity onPress={() => setAuthModalVisible(false)} style={{ padding: 20 }}>
+              <Text style={{ textAlign: "center", color: "#888" }}>Close</Text>
+            </TouchableOpacity>
+          </SafeAreaView>
         </Modal>
       </View>
     </SafeAreaView>
