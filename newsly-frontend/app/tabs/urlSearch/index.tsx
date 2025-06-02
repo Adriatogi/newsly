@@ -20,6 +20,7 @@ import {
   MaterialCommunityIcons,
   FontAwesome,
 } from "@expo/vector-icons";
+import { useAnalytics } from '../../../lib/analytics';
 
 if (Platform.OS === "android")
   UIManager.setLayoutAnimationEnabledExperimental?.(true);
@@ -66,6 +67,8 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const { trackArticleRead } = useAnalytics();
+
   const toggleSection = (k: string) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setSections((p) => ({ ...p, [k]: !p[k] }));
@@ -87,6 +90,15 @@ export default function App() {
       }).start();
     }
   }, [loading]);
+
+  useEffect(() => {
+    if (analysisData && analysisData.length > 0) {
+      analysisData.forEach((item) => {
+        console.log('[PostHog] Sending article_read event (url_query)', item.title);
+        trackArticleRead(item.title, 'url_query');
+      });
+    }
+  }, [analysisData]);
 
   const handleAnalyzeArticle = async () => {
     setLoading(true);

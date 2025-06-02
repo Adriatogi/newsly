@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Alert, StyleSheet, View, AppState } from "react-native";
 import { supabase } from "../lib/supabase";
 import { Button, Input } from "@rneui/themed";
+import { usePostHog } from 'posthog-react-native';
 
 // Tells Supabase Auth to continuously refresh the session automatically if
 // the app is in the foreground. When this is added, you will continue to receive
@@ -18,13 +19,17 @@ export default function Auth() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const posthog = usePostHog();
   async function signInWithEmail() {
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email: email,
       password: password,
     });
     if (error) Alert.alert(error.message);
+    if (data?.user?.id) {
+      posthog.identify(data.user.id);
+    }
     setLoading(false);
   }
   async function signUpWithEmail() {
@@ -49,6 +54,7 @@ export default function Auth() {
     }
 
     if (data?.user?.id) {
+      posthog.identify(data.user.id);
       Alert.alert("Please check your inbox for email verification!");
       setLoading(false);
       return;
