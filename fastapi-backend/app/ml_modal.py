@@ -180,6 +180,7 @@ async def get_tag(text: str) -> str:
 
 The output should be the tag and nothing else.
     """
+    tag = "N/A"
 
     retry = 0
     while retry < 3:
@@ -248,9 +249,12 @@ async def extract_topics(text: str, n_topics: int = 3) -> dict:
 
     prompt = """Extract the main topics into a list of strings of 1-2 words.
     It should come from the following text: {text}
+
     The output should be the list and nothing else.
+    Do not write any code.
     It should look like this: ["topic1", "topic2", "topic3"]
     The list should contain up to {n_topics} topics. 
+    The list is: 
     """
 
     retry = 0
@@ -286,14 +290,14 @@ async def extract_topics(text: str, n_topics: int = 3) -> dict:
 
 
 @app.function(
-    gpu="L4",
+    gpu="L40S",
     image=image,
     secrets=[modal.Secret.from_name("huggingface-secret")],
     volumes={"/root/.cache/huggingface": hf_cache_vol},
     scaledown_window=IDLE_TIMEOUT,
 )
 async def contextualize_article(text: str) -> dict:
-    from transformers import pipeline
+    from transformers import pipeline, AutoTokenizer
     import os
     import re
 
@@ -303,12 +307,24 @@ async def contextualize_article(text: str) -> dict:
     topics_result = extract_topics.remote(text)
     topics = topics_result["topics"]
 
+    if topics == []:
+        print("No topics found")
+
     # Then generate contextualization using Llama
+    tokenizer = AutoTokenizer.from_pretrained(
+        "meta-llama/Llama-3.1-8B-Instruct",
+        token=hf_token,
+        cache_dir="/root/.cache/huggingface",
+    )
+
     context_pipe = pipeline(
         "text-generation",
-        model="TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+        model="meta-llama/Llama-3.1-8B-Instruct",
         token=hf_token,
-        temperature=0.3,
+        trust_remote_code=True,
+        return_full_text=True,
+        eos_token_id=tokenizer.eos_token_id,
+        pad_token_id=tokenizer.pad_token_id,
     )
 
     prompt = f"""You are an expert analyst of political, cultural, and historical discourse.
@@ -316,26 +332,28 @@ async def contextualize_article(text: str) -> dict:
     Given the article excerpt: {text}
     and the following topics identified within it: {', '.join(topics)}
 
-    Write a single, concise paragraph that analyzes how historical, cultural, and political factors relate to and shape these topics in the context of the article. Do not include headings, bullet points, or lists. Your response should be fluid, academic in tone, and approximately 5–6 sentences long. Output only the paragraph.
-
+    Write a single, concise paragraph that analyzes how historical, cultural, and political factors relate to and shape these topics in the context of the article. Do not include headings, bullet points, or lists. Your response should be fluid, academic in tone. Output only the paragraph.
+    Once again, keep it short and concise.
     Contextualization:"""
 
     result = context_pipe(
         prompt,
-        max_new_tokens=512,
+        max_new_tokens=256,
         do_sample=True,
         return_full_text=False,
     )
 
     contextualization = result[0]["generated_text"].strip()
-    print("Contextualization:", contextualization)
-    return contextualization
+    first_paragraph = contextualization.split("\n\n")[0].strip()
+    print("Contextualization:", first_paragraph)
+    return first_paragraph
 
 
 @app.function(
-    gpu="L4",
+    gpu="L40S",
     image=image,
     volumes={"/root/.cache/huggingface": hf_cache_vol},
+    secrets=[modal.Secret.from_name("huggingface-secret")],
     scaledown_window=IDLE_TIMEOUT,
 )
 async def lean_explanation(
@@ -347,23 +365,25 @@ async def lean_explanation(
     print("Starting lean explanation generation...")
 
     from transformers import pipeline, AutoTokenizer
+    import os
 
-    model_name = "microsoft/phi-3-mini-128k-instruct"
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-    explainer = pipeline(
-        "text-generation", model=model_name, tokenizer=tokenizer, device=0
+    hf_token = os.environ["HF_TOKEN"]
+
+    tokenizer = AutoTokenizer.from_pretrained(
+        "meta-llama/Llama-3.1-8B-Instruct",
+        token=hf_token,
+        cache_dir="/root/.cache/huggingface",
     )
 
-    prompt = f"""
+    prompt_analysis = f"""
     Provide a brief analysis of the political leaning of the following article, which has been classified as {predicted_lean} with a confidence levelof {lean_probability:.2f} out of 1.
-    Include an overall assessment of how the content, language, and tone aligns with {predicted_lean} viewpoints.
-    The output should no more than five to six complete sentences and nothing else. 
 
-    If it helps the analysis, you can use short quotes from the article to support.
+    Please keep it short and concise.
 
     Article:
     {text}
 
+    Remember, the output should be a single paragraph.
     Analysis:
 """
 
@@ -374,19 +394,46 @@ async def lean_explanation(
             return output[idx + len(marker) :].strip()
         return output.strip()
 
-    result = explainer(
-        prompt,
-        max_new_tokens=512,
-        do_sample=True,
-        temperature=0.3,
-        top_p=0.9,
-        repetition_penalty=1.2,
+    explainer = pipeline(
+        "text-generation",
+        model="meta-llama/Llama-3.1-8B-Instruct",
+        tokenizer=tokenizer,
+        token=hf_token,
+        device=0,
+        trust_remote_code=True,
+        return_full_text=True,
+        eos_token_id=tokenizer.eos_token_id,
+        pad_token_id=tokenizer.pad_token_id,
     )
 
-    raw_output = result[0].get("generated_text", result[0].get("text", ""))
-    explanation = extract_explanation(raw_output)
-    print("\nGenerated explanation:", explanation)
-    return explanation
+    retry = 0
+    while retry < 3:
+
+        result = explainer(
+            prompt_analysis,
+            max_new_tokens=256,
+            do_sample=True,
+            return_full_text=True,
+            eos_token_id=tokenizer.eos_token_id,
+            pad_token_id=tokenizer.pad_token_id,
+        )
+        try:
+            raw_output = result[0].get("generated_text", result[0].get("text", ""))
+            explanation = extract_explanation(raw_output)
+            first_paragraph = explanation.split("\n\n")[0].strip()
+            final_explanation = first_paragraph.split("Output:")[0].strip()
+            break
+        except Exception as e:
+            print(f"Error extracting explanation: {e}")
+            retry += 1
+            continue
+
+    if retry == 3:
+        print("Failed to extract explanation")
+        return "Failed to extract explanation"
+
+    print("\nGenerated explanation:", final_explanation)
+    return final_explanation
 
 
 @app.function(
