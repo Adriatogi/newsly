@@ -72,7 +72,7 @@ def summarize(text: str) -> str:
         min_length=40,
         do_sample=False,
         num_beams=4,
-        early_stopping=True
+        early_stopping=True,
     )
     print("summary:", summary)
     return summary[0]["summary_text"]
@@ -302,7 +302,7 @@ async def contextualize_article(text: str) -> dict:
     # First extract topics
     topics_result = extract_topics.remote(text)
     topics = topics_result["topics"]
-    
+
     # Then generate contextualization using Llama
     context_pipe = pipeline(
         "text-generation",
@@ -326,7 +326,7 @@ async def contextualize_article(text: str) -> dict:
         do_sample=True,
         return_full_text=False,
     )
-    
+
     contextualization = result[0]["generated_text"].strip()
     print("Contextualization:", contextualization)
     return contextualization
