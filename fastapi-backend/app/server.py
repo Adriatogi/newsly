@@ -162,7 +162,7 @@ async def analyze_article(article: NewslyArticle, no_modal: bool = NO_MODAL) -> 
         topics = modal_extract_topics.remote.aio(article.text)
         keywords = modal_get_keywords.remote.aio(article.text)
         tag = modal_get_tag.remote.aio(article.text)
-        logical_fallacies = get_combined_logical_fallacies(article.text)
+        logical_fallacies = get_logical_fallacies(article.text)
         contextualization = modal_contextualize_article.remote.aio(article.text)
         summary, lean, topics, keywords, tag, logical_fallacies, contextualization = (
             await asyncio.gather(

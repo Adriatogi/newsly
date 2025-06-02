@@ -313,6 +313,7 @@ async def contextualize_article(text: str) -> str:
     try:
         from transformers import pipeline
         import os
+
         hf_token = os.environ.get("HF_TOKEN", None)
         if hf_token:
             context_pipe = pipeline(
@@ -337,7 +338,10 @@ async def contextualize_article(text: str) -> str:
     # Fallback: use generate_together API
     prompt = f"""You are an expert analyst of political, cultural, and historical discourse.\n\nGiven the article excerpt: {text}\nand the following topics identified within it: {', '.join(topics)}\n\nWrite a single, concise paragraph that analyzes how historical, cultural, and political factors relate to and shape these topics in the context of the article. Do not include headings, bullet points, or lists. Your response should be fluid, academic in tone, and approximately 5–6 sentences long. Output only the paragraph.\n"""
     messages = [
-        {"role": "system", "content": "You are a knowledgeable, unbiased expert providing contextual analysis."},
+        {
+            "role": "system",
+            "content": "You are a knowledgeable, unbiased expert providing contextual analysis.",
+        },
         {"role": "user", "content": prompt},
     ]
     contextualization = generate_together(
@@ -362,6 +366,7 @@ async def get_logical_fallacies(text: str, sequential: bool = False) -> dict:
         presenting_other_side = await get_presenting_other_side(text)
         scapegoating = await get_scapegoating(text)
     else:
+        print("Running parallel logical fallacies")
         (
             ad_hominem,
             discrediting_sources,
@@ -531,7 +536,7 @@ async def get_logical_fallacy_response(
             {"role": "system", "content": system_message},
             {"role": "user", "content": prompt},
         ]
-        response = generate_together(
+        response = await generate_together(
             model="meta-llama/Llama-3.3-70B-Instruct-Turbo",
             messages=messages,
             max_tokens=1024,
@@ -546,6 +551,7 @@ async def get_logical_fallacy_response(
     except Exception as e:
         print("Error getting logical fallacies: ", e)
         error = e
+        return LogicalFallacyServerList(logical_fallacies=[], error=str(e))
 
     # get list of logical fallacies from json_response (to avoid double keying)
     logical_fallacies = json_response.logical_fallacies

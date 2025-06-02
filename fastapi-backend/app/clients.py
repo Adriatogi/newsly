@@ -16,8 +16,8 @@ async def generate_together(
 
         try:
             endpoint = "https://api.together.xyz/v1/chat/completions"
-
-            await asyncio.sleep(2)
+            random_multiplier = random.uniform(0.5, 1.5)
+            await asyncio.sleep(5 * random_multiplier)
 
             async with aiohttp.ClientSession() as session:
                 async with session.post(
