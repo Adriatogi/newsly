@@ -160,10 +160,14 @@ async def analyze_article(article: NewslyArticle, no_modal: bool = NO_MODAL) -> 
             lean["predicted_lean"],
             lean["probabilities"][lean["predicted_lean"]],
         )
+        predicted_lean = lean["predicted_lean"]
+        lean_probability = lean["probabilities"][lean["predicted_lean"]]
     else:
         print("Running modal")
         summary = modal_summarize.remote.aio(article.text)
-        lean = modal_political_lean_and_explanation.remote.aio(article.text)
+        lean_and_explanation = modal_political_lean_and_explanation.remote.aio(
+            article.text
+        )
         topics_contextualization = modal_extract_topics_and_contextualize.remote.aio(
             article.text
         )
@@ -174,15 +178,14 @@ async def analyze_article(article: NewslyArticle, no_modal: bool = NO_MODAL) -> 
         # contextualization = modal_contextualize_article.remote.aio(article.text)
         (
             summary,
-            lean,
+            lean_and_explanation,
             topics_contextualization,
             keywords,
             tag,
             logical_fallacies,
-            contextualization,
         ) = await asyncio.gather(
             summary,
-            lean,
+            lean_and_explanation,
             topics_contextualization,
             keywords,
             tag,
@@ -190,7 +193,10 @@ async def analyze_article(article: NewslyArticle, no_modal: bool = NO_MODAL) -> 
             # contextualization,
         )
         #  combined with modal_political_lean
-        lean_explanation_text = lean["explanation"]
+        lean_explanation_text = lean_and_explanation["explanation"]
+        predicted_lean = lean_and_explanation["predicted_lean"]
+        lean_probability = lean_and_explanation["probabilities"]
+
         # lean_explanation_text = await modal_lean_explanation.remote.aio(
         #     article.text,
         #     lean["predicted_lean"],
@@ -202,9 +208,9 @@ async def analyze_article(article: NewslyArticle, no_modal: bool = NO_MODAL) -> 
 
     # set the properties of the article to the result of the analysis
     article.summary = summary
-    article.lean = lean
+    article.lean = predicted_lean
     article.lean_explanation = lean_explanation_text
-    article.topics = topics.get("topics", [])
+    article.topics = topics
     article.keywords = keywords
     article.tag = tag
     article.contextualization = contextualization
