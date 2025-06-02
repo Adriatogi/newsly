@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -10,6 +10,8 @@ import {
   UIManager,
   useColorScheme,
   Linking,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
@@ -18,6 +20,8 @@ import {
   FallacyCategory,
   LogicalFallacies,
 } from "../../../lib/articles";
+import { supabase } from "../../../lib/supabase";
+import { Session } from "@supabase/supabase-js";
 
 if (Platform.OS === "android")
   UIManager.setLayoutAnimationEnabledExperimental?.(true);
@@ -54,9 +58,75 @@ export default function ArticleView() {
   }>({});
   const [sections, setSections] = useState<{ [k: string]: boolean }>({});
   const biasAnalysisMap = new Map<string, string>();
+  const [isBookmarked, setIsBookmarked] = useState(false);
+  const [bookmarkLoading, setBookmarkLoading] = useState(false);
+  const [session, setSession] = useState<Session | null>(null);
 
   const isDark = useColorScheme() === "dark";
   const s = styles(isDark);
+
+  // Get user session on mount
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
+  }, []);
+
+  // Check if bookmarked on mount or when session/source_url changes
+  useEffect(() => {
+    if (session?.user && source_url) {
+      checkIfBookmarked();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, source_url]);
+
+  async function checkIfBookmarked() {
+    setBookmarkLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("bookmarks")
+        .select("id")
+        .eq("user_id", session?.user.id)
+        .eq("link", source_url)
+        .single();
+      setIsBookmarked(!!data);
+    } catch (e) {
+      setIsBookmarked(false);
+    } finally {
+      setBookmarkLoading(false);
+    }
+  }
+
+  async function handleToggleBookmark() {
+    if (!session?.user || !source_url) return;
+    setBookmarkLoading(true);
+    try {
+      if (isBookmarked) {
+        // Remove bookmark
+        const { error } = await supabase
+          .from("bookmarks")
+          .delete()
+          .eq("user_id", session.user.id)
+          .eq("link", source_url);
+        if (error) throw error;
+        setIsBookmarked(false);
+      } else {
+        // Add bookmark
+        const { error } = await supabase
+          .from("bookmarks")
+          .insert({ user_id: session.user.id, link: source_url });
+        if (error) throw error;
+        setIsBookmarked(true);
+      }
+    } catch (e) {
+      Alert.alert(
+        "Error",
+        isBookmarked ? "Failed to remove bookmark." : "Failed to add bookmark."
+      );
+    } finally {
+      setBookmarkLoading(false);
+    }
+  }
 
   const toggleFallacy = (fallacyType: string) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -203,6 +273,38 @@ export default function ArticleView() {
 
   return (
     <ScrollView contentContainerStyle={s.container}>
+      {session?.user && (
+        <View style={{ alignItems: "flex-end", marginBottom: 8 }}>
+          <Pressable
+            onPress={handleToggleBookmark}
+            disabled={bookmarkLoading}
+            style={{ padding: 8 }}
+          >
+            {bookmarkLoading ? (
+              <ActivityIndicator
+                size="small"
+                color={isDark ? "#60A5FA" : "#3B82F6"}
+              />
+            ) : (
+              <Feather
+                name={isBookmarked ? "bookmark" : "bookmark"}
+                size={26}
+                color={
+                  isBookmarked
+                    ? isDark
+                      ? "#60A5FA"
+                      : "#3B82F6"
+                    : isDark
+                    ? "#aaa"
+                    : "#888"
+                }
+                style={{ opacity: isBookmarked ? 1 : 0.7 }}
+                solid={isBookmarked}
+              />
+            )}
+          </Pressable>
+        </View>
+      )}
       <View style={s.box}>
         <Text style={s.title}>{title}</Text>
 
