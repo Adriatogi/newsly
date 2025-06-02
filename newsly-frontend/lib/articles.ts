@@ -30,7 +30,7 @@ interface BiasData {
     center: number;
     right: number;
   };
-  predicted_bias: string;
+  predicted_lean: string;
 }
 
 export interface NewsArticle {
@@ -48,8 +48,9 @@ export interface NewsArticle {
   keywords: string[];
   summary: string;
   bias: BiasData;
-  topics: string[];
-  contextualization: string;
+  bias_explanation: string;
+  tag: string;
+  contextualization: string;  
   images: string[];
   movies: string[];
   logical_fallacies: LogicalFallacies;
@@ -111,21 +112,19 @@ function transformArticle(data: any): NewsArticle {
     keywords: Array.isArray(data.keywords) ? data.keywords : [],
     summary: data.summary || "",
     bias:
-      data.bias && typeof data.bias === "object"
-        ? data.bias
+      data.lean && typeof data.lean === "object"
+        ? data.lean
         : {
             probabilities: {
               left: 0,
               center: 0,
               right: 0,
             },
-            predicted_bias: "center",
+            predicted_lean: "center",
           },
-    topics:
-      Array.isArray(data.topics) && data.topics.length > 0
-        ? [data.topics[0]]
-        : [],
-    contextualization: data.contextualization || "NONE",
+    tag: data.tag || "",
+    contextualization: data.contextualization || "No contextualization provided",
+    bias_explanation: data.lean_explanation || "No explanation provided",
     images: Array.isArray(data.images) ? data.images : [],
     movies: Array.isArray(data.movies) ? data.movies : [],
     logical_fallacies: data.logical_fallacies
