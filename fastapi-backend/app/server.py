@@ -163,8 +163,17 @@ async def analyze_article(article: NewslyArticle, no_modal: bool = NO_MODAL) -> 
         keywords = modal_get_keywords.remote.aio(article.text)
         tag = modal_get_tag.remote.aio(article.text)
         logical_fallacies = get_combined_logical_fallacies(article.text)
-        summary, lean, topics, keywords, tag, logical_fallacies = await asyncio.gather(
-            summary, lean, topics, keywords, tag, logical_fallacies
+        contextualization = modal_contextualize_article.remote.aio(article.text)
+        summary, lean, topics, keywords, tag, logical_fallacies, contextualization = (
+            await asyncio.gather(
+                summary,
+                lean,
+                topics,
+                keywords,
+                tag,
+                logical_fallacies,
+                contextualization,
+            )
         )
         # lean explanation needs lean to be set
         lean_explanation_text = await modal_lean_explanation.remote.aio(
@@ -173,16 +182,11 @@ async def analyze_article(article: NewslyArticle, no_modal: bool = NO_MODAL) -> 
             lean["probabilities"][lean["predicted_lean"]],
         )
 
-    # contextualizing depends on `topics` so we need to wait for it. Can't run async with other functions
-    contextualization = modal_contextualize_article.remote(
-        article.text, topics
-    )  # synchronous, so we don't need to await
-
     # set the properties of the article to the result of the analysis
     article.summary = summary
     article.lean = lean
     article.lean_explanation = lean_explanation_text
-    article.topics = topics
+    article.topics = topics.get("topics", [])
     article.keywords = keywords
     article.tag = tag
     article.contextualization = contextualization
