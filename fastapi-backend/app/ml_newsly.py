@@ -12,6 +12,7 @@ import app.prompts as prompts
 
 import app.utils as utils
 import asyncio
+import time
 
 
 class ArticleAnalysisRequest(BaseModel):
@@ -42,39 +43,74 @@ except ImportError:
 async def lean_explanation(
     text: str, predicted_lean: str, lean_probability: float
 ) -> str:
-    """
-    Generate an explanation for the predicted political lean of an article.
-    """
-    print("Starting lean explanation generation...")
+    if utils.TEST:
+        print("Test lean explanation")
+        return "Test lean explanation"
 
-    # Load tokenizer to check input length
-    tokenizer = AutoTokenizer.from_pretrained("google/flan-t5-large")
-    tokens = tokenizer.encode(text)
+    prompt = f"""
+    Provide a brief analysis of the political leaning of the following article, which has been classified as {predicted_lean} with a confidence level of {lean_probability:.2f} out of 1.
+    Include an overall assessment of how the content, language, and tone aligns with {predicted_lean} viewpoints.
+    The output should be no more than five to six complete sentences and nothing else.
 
-    # Truncate text if it's too long (leave room for the prompt)
-    max_input_tokens = 200  # Reduced to ensure we're well under 512 token limit
-    if len(tokens) > max_input_tokens:
-        text = tokenizer.decode(tokens[:max_input_tokens])
+    If it helps the analysis, you can use short quotes from the article to support.
 
-    explainer = pipeline("text2text-generation", model="google/flan-t5-large", device=0)
-    prompt = f"""Analyze the article text given predicted {predicted_lean} lean with ({lean_probability:.2f} confidence):
+    Article:
+    {text}
 
-        1. Quote examples
-        2. Explain each quote:
-        - Word choice
-        - Facts
-        - Tone
+    Analysis:
+"""
 
-        Article:
-        {text}
+    def extract_explanation(output: str) -> str:
+        marker = "Analysis:"
+        idx = output.find(marker)
+        if idx != -1:
+            return output[idx + len(marker) :].strip()
+        return output.strip()
 
-    Analysis:"""
-    explanation = explainer(
-        prompt, max_new_tokens=1024, do_sample=True, temperature=0.7
-    )
-    result = explanation[0].get("generated_text", explanation[0].get("text", ""))
-    print("\nGenerated explanation:", result)
-    return result
+    if device == "cuda":
+        from transformers import pipeline, AutoTokenizer
+
+        model_name = "microsoft/phi-3-mini-128k-instruct"
+        tokenizer = AutoTokenizer.from_pretrained(model_name)
+        explainer = pipeline(
+            "text-generation", model=model_name, tokenizer=tokenizer, device=0
+        )
+
+        import asyncio
+
+        loop = asyncio.get_event_loop()
+        result = await loop.run_in_executor(
+            None,
+            lambda: explainer(
+                prompt,
+                max_new_tokens=512,
+                do_sample=True,
+                temperature=0.3,
+                top_p=0.9,
+                repetition_penalty=1.2,
+            ),
+        )
+        raw_output = result[0].get("generated_text", result[0].get("text", ""))
+        explanation = extract_explanation(raw_output)
+        return explanation
+    else:
+        messages = [
+            {
+                "role": "system",
+                "content": "You are an expert political analyst that provides detailed, objective analysis of political content. Focus on specific evidence from the text and avoid making assumptions about the writer's beliefs.",
+            },
+            {"role": "user", "content": prompt},
+        ]
+        result = generate_together(
+            model="microsoft/phi-3-mini-128k-instruct",
+            messages=messages,
+            max_tokens=512,
+            temperature=0.3,
+            top_p=0.9,
+            repetition_penalty=1.2,
+        )
+        explanation = extract_explanation(result)
+        return explanation
 
 
 async def political_lean(text: str) -> dict:
@@ -313,6 +349,7 @@ async def contextualize_article(text: str) -> str:
     try:
         from transformers import pipeline
         import os
+
         hf_token = os.environ.get("HF_TOKEN", None)
         if hf_token:
             context_pipe = pipeline(
@@ -337,7 +374,10 @@ async def contextualize_article(text: str) -> str:
     # Fallback: use generate_together API
     prompt = f"""You are an expert analyst of political, cultural, and historical discourse.\n\nGiven the article excerpt: {text}\nand the following topics identified within it: {', '.join(topics)}\n\nWrite a single, concise paragraph that analyzes how historical, cultural, and political factors relate to and shape these topics in the context of the article. Do not include headings, bullet points, or lists. Your response should be fluid, academic in tone, and approximately 5–6 sentences long. Output only the paragraph.\n"""
     messages = [
-        {"role": "system", "content": "You are a knowledgeable, unbiased expert providing contextual analysis."},
+        {
+            "role": "system",
+            "content": "You are a knowledgeable, unbiased expert providing contextual analysis.",
+        },
         {"role": "user", "content": prompt},
     ]
     contextualization = generate_together(
@@ -351,6 +391,8 @@ async def contextualize_article(text: str) -> str:
 
 
 async def get_logical_fallacies(text: str, sequential: bool = False) -> dict:
+    start_time = time.time()
+
     if sequential:
         ad_hominem = await get_ad_hominem(text)
         discrediting_sources = await get_discrediting_sources(text)
@@ -362,6 +404,7 @@ async def get_logical_fallacies(text: str, sequential: bool = False) -> dict:
         presenting_other_side = await get_presenting_other_side(text)
         scapegoating = await get_scapegoating(text)
     else:
+        print("Running parallel logical fallacies")
         (
             ad_hominem,
             discrediting_sources,
@@ -383,6 +426,8 @@ async def get_logical_fallacies(text: str, sequential: bool = False) -> dict:
             get_presenting_other_side(text),
             get_scapegoating(text),
         )
+
+    print("finished in ", time.time() - start_time)
 
     return LogicalFallacyComplete(
         ad_hominem=ad_hominem,
@@ -531,7 +576,7 @@ async def get_logical_fallacy_response(
             {"role": "system", "content": system_message},
             {"role": "user", "content": prompt},
         ]
-        response = generate_together(
+        response = await generate_together(
             model="meta-llama/Llama-3.3-70B-Instruct-Turbo",
             messages=messages,
             max_tokens=1024,
@@ -546,6 +591,7 @@ async def get_logical_fallacy_response(
     except Exception as e:
         print("Error getting logical fallacies: ", e)
         error = e
+        return LogicalFallacyServerList(logical_fallacies=[], error=str(e))
 
     # get list of logical fallacies from json_response (to avoid double keying)
     logical_fallacies = json_response.logical_fallacies

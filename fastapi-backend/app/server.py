@@ -28,7 +28,9 @@ from app.newsly_types import (
 )
 
 modal_summarize = modal.Function.from_name("newsly-modal-test", "summarize")
-modal_political_lean = modal.Function.from_name("newsly-modal-test", "political_lean")
+modal_political_lean_and_explanation = modal.Function.from_name(
+    "newsly-modal-test", "political_lean_with_explanation"
+)
 modal_extract_topics = modal.Function.from_name("newsly-modal-test", "extract_topics")
 modal_get_keywords = modal.Function.from_name("newsly-modal-test", "get_keywords")
 modal_get_tag = modal.Function.from_name("newsly-modal-test", "get_tag")
@@ -40,6 +42,9 @@ modal_lean_explanation = modal.Function.from_name(
 )
 modal_get_logical_fallacies = modal.Function.from_name(
     "newsly-modal-test", "get_logical_fallacies"
+)
+modal_extract_topics_and_contextualize = modal.Function.from_name(
+    "newsly-modal-test", "extract_topics_and_contextualize"
 )
 
 NO_MODAL = False
@@ -155,38 +160,57 @@ async def analyze_article(article: NewslyArticle, no_modal: bool = NO_MODAL) -> 
             lean["predicted_lean"],
             lean["probabilities"][lean["predicted_lean"]],
         )
+        predicted_lean = lean["predicted_lean"]
+        lean_probability = lean["probabilities"][lean["predicted_lean"]]
     else:
         print("Running modal")
         summary = modal_summarize.remote.aio(article.text)
-        lean = modal_political_lean.remote.aio(article.text)
-        topics = modal_extract_topics.remote.aio(article.text)
+        lean_and_explanation = modal_political_lean_and_explanation.remote.aio(
+            article.text
+        )
+        topics_contextualization = modal_extract_topics_and_contextualize.remote.aio(
+            article.text
+        )
         keywords = modal_get_keywords.remote.aio(article.text)
         tag = modal_get_tag.remote.aio(article.text)
-        logical_fallacies = get_combined_logical_fallacies(article.text)
-        contextualization = modal_contextualize_article.remote.aio(article.text)
-        summary, lean, topics, keywords, tag, logical_fallacies, contextualization = (
-            await asyncio.gather(
-                summary,
-                lean,
-                topics,
-                keywords,
-                tag,
-                logical_fallacies,
-                contextualization,
-            )
+        logical_fallacies = get_logical_fallacies(article.text)
+        # context got combined into topics
+        # contextualization = modal_contextualize_article.remote.aio(article.text)
+        (
+            summary,
+            lean_and_explanation,
+            topics_contextualization,
+            keywords,
+            tag,
+            logical_fallacies,
+        ) = await asyncio.gather(
+            summary,
+            lean_and_explanation,
+            topics_contextualization,
+            keywords,
+            tag,
+            logical_fallacies,
+            # contextualization,
         )
-        # lean explanation needs lean to be set
-        lean_explanation_text = await modal_lean_explanation.remote.aio(
-            article.text,
-            lean["predicted_lean"],
-            lean["probabilities"][lean["predicted_lean"]],
-        )
+        #  combined with modal_political_lean
+        lean_explanation_text = lean_and_explanation["explanation"]
+        predicted_lean = lean_and_explanation["predicted_lean"]
+        lean_probability = lean_and_explanation["probabilities"]
+
+        # lean_explanation_text = await modal_lean_explanation.remote.aio(
+        #     article.text,
+        #     lean["predicted_lean"],
+        #     lean["probabilities"][lean["predicted_lean"]],
+        # )
+
+    topics = topics_contextualization["topics"]
+    contextualization = topics_contextualization["contextualization"]
 
     # set the properties of the article to the result of the analysis
     article.summary = summary
-    article.lean = lean
+    article.lean = predicted_lean
     article.lean_explanation = lean_explanation_text
-    article.topics = topics.get("topics", [])
+    article.topics = topics
     article.keywords = keywords
     article.tag = tag
     article.contextualization = contextualization
