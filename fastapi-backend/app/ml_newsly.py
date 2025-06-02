@@ -12,6 +12,7 @@ import app.prompts as prompts
 
 import app.utils as utils
 import asyncio
+import time
 
 
 class ArticleAnalysisRequest(BaseModel):
@@ -39,7 +40,9 @@ except ImportError:
     print("PyTorch not installed, using CPU")
 
 
-async def lean_explanation(text: str, predicted_lean: str, lean_probability: float) -> str:
+async def lean_explanation(
+    text: str, predicted_lean: str, lean_probability: float
+) -> str:
     if utils.TEST:
         print("Test lean explanation")
         return "Test lean explanation"
@@ -61,16 +64,20 @@ async def lean_explanation(text: str, predicted_lean: str, lean_probability: flo
         marker = "Analysis:"
         idx = output.find(marker)
         if idx != -1:
-            return output[idx + len(marker):].strip()
+            return output[idx + len(marker) :].strip()
         return output.strip()
 
     if device == "cuda":
         from transformers import pipeline, AutoTokenizer
+
         model_name = "microsoft/phi-3-mini-128k-instruct"
         tokenizer = AutoTokenizer.from_pretrained(model_name)
-        explainer = pipeline("text-generation", model=model_name, tokenizer=tokenizer, device=0)
+        explainer = pipeline(
+            "text-generation", model=model_name, tokenizer=tokenizer, device=0
+        )
 
         import asyncio
+
         loop = asyncio.get_event_loop()
         result = await loop.run_in_executor(
             None,
@@ -80,8 +87,8 @@ async def lean_explanation(text: str, predicted_lean: str, lean_probability: flo
                 do_sample=True,
                 temperature=0.3,
                 top_p=0.9,
-                repetition_penalty=1.2
-            )
+                repetition_penalty=1.2,
+            ),
         )
         raw_output = result[0].get("generated_text", result[0].get("text", ""))
         explanation = extract_explanation(raw_output)
@@ -90,9 +97,9 @@ async def lean_explanation(text: str, predicted_lean: str, lean_probability: flo
         messages = [
             {
                 "role": "system",
-                "content": "You are an expert political analyst that provides detailed, objective analysis of political content. Focus on specific evidence from the text and avoid making assumptions about the writer's beliefs."
+                "content": "You are an expert political analyst that provides detailed, objective analysis of political content. Focus on specific evidence from the text and avoid making assumptions about the writer's beliefs.",
             },
-            {"role": "user", "content": prompt}
+            {"role": "user", "content": prompt},
         ]
         result = generate_together(
             model="microsoft/phi-3-mini-128k-instruct",
@@ -100,7 +107,7 @@ async def lean_explanation(text: str, predicted_lean: str, lean_probability: flo
             max_tokens=512,
             temperature=0.3,
             top_p=0.9,
-            repetition_penalty=1.2
+            repetition_penalty=1.2,
         )
         explanation = extract_explanation(result)
         return explanation
@@ -384,6 +391,8 @@ async def contextualize_article(text: str) -> str:
 
 
 async def get_logical_fallacies(text: str, sequential: bool = False) -> dict:
+    start_time = time.time()
+
     if sequential:
         ad_hominem = await get_ad_hominem(text)
         discrediting_sources = await get_discrediting_sources(text)
@@ -417,6 +426,8 @@ async def get_logical_fallacies(text: str, sequential: bool = False) -> dict:
             get_presenting_other_side(text),
             get_scapegoating(text),
         )
+
+    print("finished in ", time.time() - start_time)
 
     return LogicalFallacyComplete(
         ad_hominem=ad_hominem,

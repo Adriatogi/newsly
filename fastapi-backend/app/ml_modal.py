@@ -79,15 +79,27 @@ def summarize(text: str) -> str:
 
 
 @app.function(
-    gpu="L4",
+    gpu="L40S",
     image=image,
+    secrets=[modal.Secret.from_name("huggingface-secret")],
     volumes={"/root/.cache/huggingface": hf_cache_vol},
     scaledown_window=IDLE_TIMEOUT,
 )
-async def political_lean(text: str) -> dict:
-    from transformers import AutoTokenizer, AutoModelForSequenceClassification
+async def political_lean_with_explanation(text: str) -> dict:
+    """
+    Classifies the political lean of the text and provides an explanation.
+    """
+    from transformers import (
+        AutoTokenizer,
+        AutoModelForSequenceClassification,
+        pipeline,
+        AutoTokenizer as LlamaTokenizer,
+    )
     import torch
+    import os
+    import gc
 
+    # --- Step 1: Political Lean Classification ---
     print("Starting political lean analysis...")
 
     tokenizer = AutoTokenizer.from_pretrained("bucketresearch/politicalBiasBERT")
@@ -107,9 +119,7 @@ async def political_lean(text: str) -> dict:
 
     class_labels = ["left", "center", "right"]
     predicted_lean = class_labels[predicted_class]
-
-    print(f"Predicted lean: {predicted_lean}")
-    print(f"Raw probabilities: {probabilities}")
+    lean_probability = float(probabilities[predicted_class])
 
     probabilities_dict = {
         "left": float(probabilities[0]),
@@ -117,10 +127,98 @@ async def political_lean(text: str) -> dict:
         "right": float(probabilities[2]),
     }
 
-    data = {"probabilities": probabilities_dict, "predicted_lean": str(predicted_lean)}
+    # --- Unload BERT model ---
+    print("Unloading BERT model...")
+    del model
+    del tokenizer
+    del inputs
+    del outputs
+    del logits
+    del raw_probabilities
 
-    print("Final data structure being returned:", data)
-    return data
+    # Clear GPU memory if using CUDA
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+
+    # Force garbage collection
+    gc.collect()
+
+    print("BERT model unloaded successfully")
+
+    # --- Step 2: Generate Explanation ---
+    print("Generating explanation for lean...")
+
+    hf_token = os.environ["HF_TOKEN"]
+
+    llama_tokenizer = LlamaTokenizer.from_pretrained(
+        "meta-llama/Llama-3.1-8B-Instruct",
+        token=hf_token,
+        cache_dir="/root/.cache/huggingface",
+    )
+
+    prompt_analysis = f"""
+    Provide a brief analysis of the political leaning of the following article, which has been classified as {predicted_lean} with a confidence level of {lean_probability:.2f} out of 1.
+
+    Please keep it short and concise.
+
+    Article:
+    {text}
+
+    Remember, the output should be a single paragraph.
+    Analysis:
+    """
+
+    def extract_explanation(output: str) -> str:
+        marker = "Analysis:"
+        idx = output.find(marker)
+        if idx != -1:
+            return output[idx + len(marker) :].strip()
+        return output.strip()
+
+    explainer = pipeline(
+        "text-generation",
+        model="meta-llama/Llama-3.1-8B-Instruct",
+        tokenizer=llama_tokenizer,
+        token=hf_token,
+        device=0,
+        trust_remote_code=True,
+        return_full_text=True,
+        eos_token_id=llama_tokenizer.eos_token_id,
+        pad_token_id=llama_tokenizer.pad_token_id,
+    )
+
+    retry = 0
+    explanation = ""
+    while retry < 3:
+        result = explainer(
+            prompt_analysis,
+            max_new_tokens=256,
+            do_sample=True,
+            return_full_text=True,
+            eos_token_id=llama_tokenizer.eos_token_id,
+            pad_token_id=llama_tokenizer.pad_token_id,
+        )
+        try:
+            raw_output = result[0].get("generated_text", result[0].get("text", ""))
+            explanation = extract_explanation(raw_output)
+            first_paragraph = explanation.split("\n\n")[0].strip()
+            final_explanation = first_paragraph.split("Output:")[0].strip()
+            break
+        except Exception as e:
+            print(f"Error extracting explanation: {e}")
+            retry += 1
+            continue
+
+    if retry == 3:
+        print("Failed to extract explanation")
+        final_explanation = "Failed to extract explanation"
+
+    # --- Return both results ---
+    return {
+        "probabilities": probabilities_dict,
+        "predicted_lean": predicted_lean,
+        "explanation": str(final_explanation),
+    }
 
 
 @app.function(
@@ -232,13 +330,17 @@ The output should be the tag and nothing else.
     volumes={"/root/.cache/huggingface": hf_cache_vol},
     scaledown_window=IDLE_TIMEOUT,
 )
-async def extract_topics(text: str, n_topics: int = 3) -> dict:
-    from transformers import pipeline
-    import re
+async def extract_topics_and_contextualize(text: str, n_topics: int = 3) -> dict:
+    """
+    Extracts main topics from the text and generates a contextualization paragraph.
+    """
+    from transformers import pipeline, AutoTokenizer
     import os
+    import re
 
     hf_token = os.environ["HF_TOKEN"]
 
+    # --- Step 1: Extract Topics ---
     pipe = pipeline(
         "text-generation",
         model="meta-llama/Llama-3.1-8B-Instruct",
@@ -247,34 +349,34 @@ async def extract_topics(text: str, n_topics: int = 3) -> dict:
         # load_in_4bit=True,
     )
 
-    prompt = """Extract the main topics into a list of strings of 1-2 words.
+    topic_prompt = f"""Extract the main topics into a list of strings of 1-2 words.
     It should come from the following text: {text}
 
     The output should be the list and nothing else.
     Do not write any code.
     It should look like this: ["topic1", "topic2", "topic3"]
-    The list should contain up to {n_topics} topics. 
+    The list should contain MAXIMUM of {n_topics} topics. 
     The list is: 
     """
 
     retry = 0
+    topics = []
     while retry < 3:
         result = pipe(
-            prompt.format(n_topics=n_topics, text=text),
+            topic_prompt,
             max_new_tokens=50,
             do_sample=True,
             return_full_text=False,
         )
         print(f"Result: {result}")
-        topics = result[0]["generated_text"]
-        topics = re.search(r'\[(?:\s*"[^"]*"\s*,?)*\]', topics)
-        if not topics:
+        topics_str = result[0]["generated_text"]
+        topics_match = re.search(r'\[(?:\s*"[^"]*"\s*,?)*\]', topics_str)
+        if not topics_match:
             retry += 1
             continue
 
         try:
-            topics = topics.group(0)
-            topics = eval(topics)
+            topics = eval(topics_match.group(0))
             break
         except Exception as e:
             print(f"Error evaluating topics: {e}")
@@ -283,61 +385,21 @@ async def extract_topics(text: str, n_topics: int = 3) -> dict:
 
     if retry == 3:
         print("Failed to extract topics")
-        return {"topics": []}
+        topics = []
 
-    print(f"Topics: {topics}")
-    return {"topics": topics}
+    # --- Step 2: Contextualize Article ---
 
-
-@app.function(
-    gpu="L40S",
-    image=image,
-    secrets=[modal.Secret.from_name("huggingface-secret")],
-    volumes={"/root/.cache/huggingface": hf_cache_vol},
-    scaledown_window=IDLE_TIMEOUT,
-)
-async def contextualize_article(text: str) -> dict:
-    from transformers import pipeline, AutoTokenizer
-    import os
-    import re
-
-    hf_token = os.environ["HF_TOKEN"]
-
-    # First extract topics
-    topics_result = extract_topics.remote(text)
-    topics = topics_result["topics"]
-
-    if topics == []:
-        print("No topics found")
-
-    # Then generate contextualization using Llama
-    tokenizer = AutoTokenizer.from_pretrained(
-        "meta-llama/Llama-3.1-8B-Instruct",
-        token=hf_token,
-        cache_dir="/root/.cache/huggingface",
-    )
-
-    context_pipe = pipeline(
-        "text-generation",
-        model="meta-llama/Llama-3.1-8B-Instruct",
-        token=hf_token,
-        trust_remote_code=True,
-        return_full_text=True,
-        eos_token_id=tokenizer.eos_token_id,
-        pad_token_id=tokenizer.pad_token_id,
-    )
-
-    prompt = f"""You are an expert analyst of political, cultural, and historical discourse.
+    context_prompt = f"""You are an expert analyst of political, cultural, and historical discourse.
 
     Given the article excerpt: {text}
-    and the following topics identified within it: {', '.join(topics)}
+    and the following topics identified within it: {', '.join(topics) if topics else 'N/A'}
 
     Write a single, concise paragraph that analyzes how historical, cultural, and political factors relate to and shape these topics in the context of the article. Do not include headings, bullet points, or lists. Your response should be fluid, academic in tone. Output only the paragraph.
     Once again, keep it short and concise.
     Contextualization:"""
 
-    result = context_pipe(
-        prompt,
+    result = pipe(
+        context_prompt,
         max_new_tokens=256,
         do_sample=True,
         return_full_text=False,
@@ -345,95 +407,11 @@ async def contextualize_article(text: str) -> dict:
 
     contextualization = result[0]["generated_text"].strip()
     first_paragraph = contextualization.split("\n\n")[0].strip()
-    print("Contextualization:", first_paragraph)
-    return first_paragraph
 
-
-@app.function(
-    gpu="L40S",
-    image=image,
-    volumes={"/root/.cache/huggingface": hf_cache_vol},
-    secrets=[modal.Secret.from_name("huggingface-secret")],
-    scaledown_window=IDLE_TIMEOUT,
-)
-async def lean_explanation(
-    text: str, predicted_lean: str, lean_probability: float
-) -> str:
-    """
-    Generate an explanation for the predicted political lean of an article using Phi-3-mini-128k-instruct.
-    """
-    print("Starting lean explanation generation...")
-
-    from transformers import pipeline, AutoTokenizer
-    import os
-
-    hf_token = os.environ["HF_TOKEN"]
-
-    tokenizer = AutoTokenizer.from_pretrained(
-        "meta-llama/Llama-3.1-8B-Instruct",
-        token=hf_token,
-        cache_dir="/root/.cache/huggingface",
-    )
-
-    prompt_analysis = f"""
-    Provide a brief analysis of the political leaning of the following article, which has been classified as {predicted_lean} with a confidence levelof {lean_probability:.2f} out of 1.
-
-    Please keep it short and concise.
-
-    Article:
-    {text}
-
-    Remember, the output should be a single paragraph.
-    Analysis:
-"""
-
-    def extract_explanation(output: str) -> str:
-        marker = "Analysis:"
-        idx = output.find(marker)
-        if idx != -1:
-            return output[idx + len(marker) :].strip()
-        return output.strip()
-
-    explainer = pipeline(
-        "text-generation",
-        model="meta-llama/Llama-3.1-8B-Instruct",
-        tokenizer=tokenizer,
-        token=hf_token,
-        device=0,
-        trust_remote_code=True,
-        return_full_text=True,
-        eos_token_id=tokenizer.eos_token_id,
-        pad_token_id=tokenizer.pad_token_id,
-    )
-
-    retry = 0
-    while retry < 3:
-
-        result = explainer(
-            prompt_analysis,
-            max_new_tokens=256,
-            do_sample=True,
-            return_full_text=True,
-            eos_token_id=tokenizer.eos_token_id,
-            pad_token_id=tokenizer.pad_token_id,
-        )
-        try:
-            raw_output = result[0].get("generated_text", result[0].get("text", ""))
-            explanation = extract_explanation(raw_output)
-            first_paragraph = explanation.split("\n\n")[0].strip()
-            final_explanation = first_paragraph.split("Output:")[0].strip()
-            break
-        except Exception as e:
-            print(f"Error extracting explanation: {e}")
-            retry += 1
-            continue
-
-    if retry == 3:
-        print("Failed to extract explanation")
-        return "Failed to extract explanation"
-
-    print("\nGenerated explanation:", final_explanation)
-    return final_explanation
+    return {
+        "topics": topics,
+        "contextualization": first_paragraph,
+    }
 
 
 @app.function(
