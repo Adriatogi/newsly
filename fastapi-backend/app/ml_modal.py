@@ -342,34 +342,51 @@ async def lean_explanation(
     text: str, predicted_lean: str, lean_probability: float
 ) -> str:
     """
-    Generate an explanation for the predicted political lean of an article.
+    Generate an explanation for the predicted political lean of an article using Phi-3-mini-128k-instruct.
     """
     print("Starting lean explanation generation...")
 
     from transformers import pipeline, AutoTokenizer
 
-    # Load tokenizer to check input length
-    tokenizer = AutoTokenizer.from_pretrained("google/flan-t5-large")
-    tokens = tokenizer.encode(text)
+    model_name = "microsoft/phi-3-mini-128k-instruct"
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    explainer = pipeline(
+        "text-generation", model=model_name, tokenizer=tokenizer, device=0
+    )
 
-    # Truncate text if it's too long (leave room for the prompt)
-    max_input_tokens = 200  # Reduced to ensure we're well under 512 token limit
-    if len(tokens) > max_input_tokens:
-        text = tokenizer.decode(tokens[:max_input_tokens])
+    prompt = f"""
+    Provide a brief analysis of the political leaning of the following article, which has been classified as {predicted_lean} with a confidence levelof {lean_probability:.2f} out of 1.
+    Include an overall assessment of how the content, language, and tone aligns with {predicted_lean} viewpoints.
+    The output should no more than five to six complete sentences and nothing else. 
 
-    explainer = pipeline("text2text-generation", model="google/flan-t5-large", device=0)
-    prompt = f"""Analyze {predicted_lean} lean ({lean_probability:.2f} confidence) based on the following article:
+    If it helps the analysis, you can use short quotes from the article to support.
+
+    Article:
     {text}
 
-    Your analysis must consider: topics, word choice, framing, and perspective.
+    Analysis:
+"""
 
-    Analysis:"""
-    explanation = explainer(
-        prompt, max_new_tokens=1024, do_sample=True, temperature=0.7
+    def extract_explanation(output: str) -> str:
+        marker = "Analysis:"
+        idx = output.find(marker)
+        if idx != -1:
+            return output[idx + len(marker) :].strip()
+        return output.strip()
+
+    result = explainer(
+        prompt,
+        max_new_tokens=512,
+        do_sample=True,
+        temperature=0.3,
+        top_p=0.9,
+        repetition_penalty=1.2,
     )
-    result = explanation[0].get("generated_text", explanation[0].get("text", ""))
-    print("\nGenerated explanation:", result)
-    return result
+
+    raw_output = result[0].get("generated_text", result[0].get("text", ""))
+    explanation = extract_explanation(raw_output)
+    print("\nGenerated explanation:", explanation)
+    return explanation
 
 
 @app.function(
