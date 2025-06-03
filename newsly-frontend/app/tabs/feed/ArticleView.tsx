@@ -37,7 +37,6 @@ const FALLACY_NAMES: { [key: string]: string } = {
 
 export default function ArticleView() {
   const params = useLocalSearchParams();
-  console.log('[DEBUG] ArticleView params:', params);
   const {
     title,
     summary,
@@ -67,7 +66,6 @@ export default function ArticleView() {
 
   useEffect(() => {
     if (articleId) {
-      console.log('[PostHog] Sending article_read event (main_feed)', articleId);
       trackArticleRead(articleId as string, 'main_feed');
     }
   }, [articleId]);
