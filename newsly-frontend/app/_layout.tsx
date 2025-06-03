@@ -42,7 +42,7 @@ export default function RootLayout() {
   return (
     <NavigationContainer>
       <PostHogProvider
-        apiKey="phc_sUx7Ac14ozlcNQiEBhE2NyjwQE65DbKSJtgLalUL0xB"
+        apiKey={process.env.EXPO_PUBLIC_POSTHOG_KEY}
         options={{ host: "https://us.i.posthog.com" }}
       >
         <SessionTrackingWrapper />
