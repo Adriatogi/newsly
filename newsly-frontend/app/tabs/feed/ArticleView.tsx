@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -18,6 +18,7 @@ import {
   FallacyCategory,
   LogicalFallacies,
 } from "../../../lib/articles";
+import { useAnalytics } from '../../../lib/analytics';
 
 if (Platform.OS === "android")
   UIManager.setLayoutAnimationEnabledExperimental?.(true);
@@ -35,6 +36,8 @@ const FALLACY_NAMES: { [key: string]: string } = {
 };
 
 export default function ArticleView() {
+  const params = useLocalSearchParams();
+  console.log('[DEBUG] ArticleView params:', params);
   const {
     title,
     summary,
@@ -45,7 +48,8 @@ export default function ArticleView() {
     authors,
     published_date,
     source_url,
-  } = useLocalSearchParams();
+    articleId,
+  } = params;
 
   const parsedLogicalFallacies = logical_fallacies
     ? (JSON.parse(logical_fallacies as string) as LogicalFallacies)
@@ -58,6 +62,15 @@ export default function ArticleView() {
 
   const isDark = useColorScheme() === "dark";
   const s = styles(isDark);
+
+  const { trackArticleRead } = useAnalytics();
+
+  useEffect(() => {
+    if (articleId) {
+      console.log('[PostHog] Sending article_read event (main_feed)', articleId);
+      trackArticleRead(articleId as string, 'main_feed');
+    }
+  }, [articleId]);
 
   const toggleFallacy = (fallacyType: string) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);

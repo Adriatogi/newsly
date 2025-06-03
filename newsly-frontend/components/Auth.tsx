@@ -3,6 +3,7 @@ import { useColorScheme } from "react-native";
 import { Alert, StyleSheet, View, AppState } from "react-native";
 import { supabase } from "../lib/supabase";
 import { Button, Input } from "@rneui/themed";
+import { usePostHog } from 'posthog-react-native';
 
 interface AuthProps {
   onAuthSuccess?: () => void;
@@ -23,15 +24,18 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
+  const isDark = useColorScheme() === 'dark';
+  const posthog = usePostHog();
   async function signInWithEmail() {
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email: email,
       password: password,
     });
     if (error) Alert.alert(error.message);
+    if (data?.user?.id) {
+      posthog.identify(data.user.id);
+    }
     setLoading(false);
     if (!error && onAuthSuccess) onAuthSuccess();
   }
@@ -57,6 +61,7 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
     }
 
     if (data?.user?.id) {
+      posthog.identify(data.user.id);
       const { error: profileError } = await supabase.from("profiles").insert({
         id: data.user.id,
         username: email.split("@")[0],

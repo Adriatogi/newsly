@@ -24,6 +24,7 @@ import {
   MaterialCommunityIcons,
   FontAwesome,
 } from "@expo/vector-icons";
+import { useAnalytics } from '../../../lib/analytics';
 
 if (Platform.OS === "android")
   UIManager.setLayoutAnimationEnabledExperimental?.(true);
@@ -131,7 +132,8 @@ export default function App() {
   const [analysisData, setAnalysisData] = useState<AnalysisData[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
+        
+  const { trackArticleRead } = useAnalytics();
   // Animated rotation for magnifying glass
   const rotateAnim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -159,6 +161,7 @@ export default function App() {
     inputRange: [0, 1],
     outputRange: ["0deg", "360deg"],
   });
+
 
   const toggleSection = (k: string) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -541,6 +544,15 @@ export default function App() {
       }
     }
   };
+    
+      useEffect(() => {
+    if (analysisData && analysisData.length > 0) {
+      analysisData.forEach((item) => {
+        console.log('[PostHog] Sending article_read event (url_query)', item.title);
+        trackArticleRead(item.title, 'url_query');
+      });
+    }
+  }, [analysisData]);
 
   const handleAnalyzeArticle = async () => {
     setLoading(true);

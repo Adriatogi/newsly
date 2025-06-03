@@ -15,6 +15,7 @@ import { useRouter } from "expo-router";
 import { NewsArticle, fetchArticles } from "../../../lib/articles";
 import { NewsCard } from "../../../components/NewsCard";
 import { SearchContext } from "./_layout";
+import { useAnalytics } from '../../../lib/analytics';
 
 const Feed: React.FC = () => {
   const router = useRouter();
@@ -26,6 +27,7 @@ const Feed: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const { searchQuery } = useContext(SearchContext);
+  const { trackArticleShown } = useAnalytics();
 
   useEffect(() => {
     loadArticles();
@@ -76,10 +78,17 @@ const Feed: React.FC = () => {
       );
     });
 
+  useEffect(() => {
+    filteredArticles.forEach((article) => {
+      trackArticleShown(article.id, 'main_feed');
+    });
+  }, [filteredArticles]);
+
   const handleArticlePress = (article: NewsArticle) => {
     router.push({
       pathname: "/tabs/feed/ArticleView",
       params: {
+        articleId: article.id,
         title: article.title,
         summary: article.summary,
         biasScore: article.bias.predicted_lean,
