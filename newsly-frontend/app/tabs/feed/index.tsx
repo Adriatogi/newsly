@@ -9,6 +9,7 @@ import {
   useColorScheme,
   StatusBar,
   ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { NewsArticle, fetchArticles } from "../../../lib/articles";
@@ -24,6 +25,7 @@ const Feed: React.FC = () => {
   const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const { searchQuery } = useContext(SearchContext);
   const { trackArticleShown } = useAnalytics();
 
@@ -45,17 +47,23 @@ const Feed: React.FC = () => {
     }
   };
 
+  const onRefresh = React.useCallback(async () => {
+    setRefreshing(true);
+    await loadArticles();
+    setRefreshing(false);
+  }, []);
+
   // Get unique topics from articles
   const categories = [
     "All",
-    ...new Set(articles.flatMap((article) => article.topics)),
+    ...new Set(articles.flatMap((article) => article.tag).filter(Boolean)),
   ];
 
   // Filter articles based on selected category and search query
   const filteredArticles = articles
     .filter(
       (article) =>
-        activeCategory === "All" || article.topics.includes(activeCategory)
+        activeCategory === "All" || article.tag.includes(activeCategory)
     )
     .filter((article) => {
       if (!searchQuery) return true;
@@ -66,7 +74,7 @@ const Feed: React.FC = () => {
         article.authors.some((author) =>
           author.toLowerCase().includes(query)
         ) ||
-        article.topics.some((topic) => topic.toLowerCase().includes(query))
+        article.tag.toLowerCase().includes(query)
       );
     });
 
@@ -83,8 +91,9 @@ const Feed: React.FC = () => {
         articleId: article.id,
         title: article.title,
         summary: article.summary,
-        biasScore: article.bias.predicted_bias,
+        biasScore: article.bias.predicted_lean,
         contextualization: article.contextualization,
+        bias_explanation: article.bias_explanation,
         logical_fallacies: JSON.stringify(article.logical_fallacies),
         authors: JSON.stringify(article.authors),
         published_date: article.published_date,
@@ -141,6 +150,14 @@ const Feed: React.FC = () => {
       <ScrollView
         contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={isDark ? "#FFFFFF" : "#152B3F"}
+            colors={[isDark ? "#FFFFFF" : "#152B3F"]}
+          />
+        }
       >
         <View style={styles.categoriesContainer}>
           <ScrollView
@@ -193,8 +210,8 @@ const Feed: React.FC = () => {
                   publishDate={article.published_date}
                   shadowColor="#000"
                   shadowOpacity={0.15}
-                  biasScore={article.bias.predicted_bias}
-                  category={article.topics[0] || "Uncategorized"}
+                  biasScore={article.bias.predicted_lean}
+                  category={article.tag || "Uncategorized"}
                   author={article.authors[0] || "Unknown Author"}
                   newsSource={article.source_url}
                 />
@@ -241,7 +258,6 @@ const styles = StyleSheet.create({
   newsContainer: {
     gap: 16,
     paddingHorizontal: 12,
-
   },
   loadingContainer: {
     flex: 1,
