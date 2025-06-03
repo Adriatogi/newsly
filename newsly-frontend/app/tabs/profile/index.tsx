@@ -123,8 +123,15 @@ export default function App() {
   };
 
   return (
-    <SafeAreaView style={{ backgroundColor: isDark ? "#0B1724" : "#fff", flex: 1 }}>
-      <View style={[styles.container, { backgroundColor: isDark ? "#0B1724" : "#fff", flex: 1 }]}>
+    <SafeAreaView
+      style={{ backgroundColor: isDark ? "#0B1724" : "#fff", flex: 1 }}
+    >
+      <View
+        style={[
+          styles.container,
+          { backgroundColor: isDark ? "#0B1724" : "#fff", flex: 1 },
+        ]}
+      >
         {session ? (
           <View style={styles.profileContainer}>
             {avatarUrl ? (
@@ -165,7 +172,14 @@ export default function App() {
                 style={{ width: 72, height: 72, marginBottom: 16 }}
                 resizeMode="contain"
               />
-              <Text style={{ fontSize: 28, fontWeight: "bold", marginBottom: 8, color: isDark ? "#fff" : "#000" }}>
+              <Text
+                style={{
+                  fontSize: 28,
+                  fontWeight: "bold",
+                  marginBottom: 8,
+                  color: isDark ? "#fff" : "#000",
+                }}
+              >
                 Welcome to Newsly
               </Text>
               <Text
@@ -176,8 +190,8 @@ export default function App() {
                   color: isDark ? "#ccc" : "#444",
                 }}
               >
-                Compare, contrast, and contextualize related news articles from across
-                the political spectrum.
+                Compare, contrast, and contextualize related news articles from
+                across the political spectrum.
               </Text>
               <TouchableOpacity
                 onPress={() => setSession(null)}
@@ -189,17 +203,49 @@ export default function App() {
                   marginBottom: 24,
                 }}
               >
-                <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 16 }}>
+                <Text
+                  style={{ color: "#fff", fontWeight: "bold", fontSize: 16 }}
+                >
                   Sign Up
                 </Text>
               </TouchableOpacity>
               <View style={{ marginBottom: 16 }}>
-                <Text style={{ fontSize: 16, marginBottom: 8, color: isDark ? "#ddd" : "#000" }}>✓ See multiple perspectives on current stories</Text>
-                <Text style={{ fontSize: 16, marginBottom: 8, color: isDark ? "#ddd" : "#000"}}>✓ Uncover political bias and misinformation</Text>
-                <Text style={{ fontSize: 16, marginBottom: 8, color: isDark ? "#ddd" : "#000" }}>✓ Explore contextual summaries of issues</Text>
+                <Text
+                  style={{
+                    fontSize: 16,
+                    marginBottom: 8,
+                    color: isDark ? "#ddd" : "#000",
+                  }}
+                >
+                  ✓ See multiple perspectives on current stories
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 16,
+                    marginBottom: 8,
+                    color: isDark ? "#ddd" : "#000",
+                  }}
+                >
+                  ✓ Uncover political bias and misinformation
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 16,
+                    marginBottom: 8,
+                    color: isDark ? "#ddd" : "#000",
+                  }}
+                >
+                  ✓ Explore contextual summaries of issues
+                </Text>
               </View>
               <TouchableOpacity onPress={() => setSession(null)}>
-                <Text style={{ color: isDark ? "#60A5FA" : "#3B82F6", fontWeight: "bold", marginTop: 16 }}>
+                <Text
+                  style={{
+                    color: isDark ? "#60A5FA" : "#3B82F6",
+                    fontWeight: "bold",
+                    marginTop: 16,
+                  }}
+                >
                   Already have an account? Sign In
                 </Text>
               </TouchableOpacity>
