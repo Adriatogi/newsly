@@ -548,7 +548,6 @@ export default function App() {
       useEffect(() => {
     if (analysisData && analysisData.length > 0) {
       analysisData.forEach((item) => {
-        console.log('[PostHog] Sending article_read event (url_query)', item.title);
         trackArticleRead(item.title, 'url_query');
       });
     }
