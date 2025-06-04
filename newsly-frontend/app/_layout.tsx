@@ -39,16 +39,16 @@ export default function RootLayout() {
   }
 
   return (
-    <PostHogProvider
-      apiKey={process.env.EXPO_PUBLIC_POSTHOG_KEY}
-      options={{ host: "https://us.i.posthog.com" }}
-    >
-      <SessionTrackingWrapper />
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        <StatusBar style="dark" backgroundColor="#ffffff" />
-        <Slot />
-      </GestureHandlerRootView>
-    </PostHogProvider>
+      <PostHogProvider
+        apiKey={process.env.EXPO_PUBLIC_POSTHOG_KEY}
+        options={{ host: "https://us.i.posthog.com" }}
+      >
+        <SessionTrackingWrapper />
+        <GestureHandlerRootView style={{ flex: 1 }}>
+          <StatusBar style="dark" backgroundColor="#ffffff" />
+          <Slot />
+        </GestureHandlerRootView>
+      </PostHogProvider>
   );
 }
 

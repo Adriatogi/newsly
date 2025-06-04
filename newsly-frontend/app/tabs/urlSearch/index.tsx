@@ -672,8 +672,8 @@ export default function App() {
           <Text style={getStyles(isDark).splashTitle}>
             Analyzing Article...
           </Text>
-          <Text style={getStyles(isDark).splashSubtitle}>
-            Please wait while we break down your article.
+          <Text style={[getStyles(isDark).splashSubtitle, { paddingHorizontal: 32 }]}>
+            Please wait while we break down your article. This may take about 1 minute.
           </Text>
         </View>
       </Animated.View>

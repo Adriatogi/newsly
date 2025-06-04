@@ -10,6 +10,8 @@ import {
   UIManager,
   useColorScheme,
   Linking,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
@@ -18,7 +20,10 @@ import {
   FallacyCategory,
   LogicalFallacies,
 } from "../../../lib/articles";
-import { useAnalytics } from '../../../lib/analytics';
+
+import { supabase } from "../../../lib/supabase";
+import { Session } from "@supabase/supabase-js";
+import { useAnalytics } from "../../../lib/analytics";
 
 if (Platform.OS === "android")
   UIManager.setLayoutAnimationEnabledExperimental?.(true);
@@ -37,6 +42,7 @@ const FALLACY_NAMES: { [key: string]: string } = {
 
 export default function ArticleView() {
   const params = useLocalSearchParams();
+  console.log("[DEBUG] ArticleView params:", params);
   const {
     title,
     summary,
@@ -58,15 +64,86 @@ export default function ArticleView() {
   }>({});
   const [sections, setSections] = useState<{ [k: string]: boolean }>({});
   const biasAnalysisMap = new Map<string, string>();
+  const [isBookmarked, setIsBookmarked] = useState(false);
+  const [bookmarkLoading, setBookmarkLoading] = useState(false);
+  const [session, setSession] = useState<Session | null>(null);
 
   const isDark = useColorScheme() === "dark";
   const s = styles(isDark);
+
+  // Get user session on mount
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
+  }, []);
+
+  // Check if bookmarked on mount or when session/source_url changes
+  useEffect(() => {
+    if (session?.user && source_url) {
+      checkIfBookmarked();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, source_url]);
+
+  async function checkIfBookmarked() {
+    setBookmarkLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("bookmarks")
+        .select("id")
+        .eq("user_id", session?.user.id)
+        .eq("link", source_url)
+        .single();
+      setIsBookmarked(!!data);
+    } catch (e) {
+      setIsBookmarked(false);
+    } finally {
+      setBookmarkLoading(false);
+    }
+  }
+
+  async function handleToggleBookmark() {
+    if (!session?.user || !source_url) return;
+    setBookmarkLoading(true);
+    try {
+      if (isBookmarked) {
+        // Remove bookmark
+        const { error } = await supabase
+          .from("bookmarks")
+          .delete()
+          .eq("user_id", session.user.id)
+          .eq("link", source_url);
+        if (error) throw error;
+        setIsBookmarked(false);
+      } else {
+        // Add bookmark
+        const { error } = await supabase
+          .from("bookmarks")
+          .insert({ user_id: session.user.id, link: source_url });
+        if (error) throw error;
+        setIsBookmarked(true);
+      }
+    } catch (e) {
+      Alert.alert(
+        "Error",
+        isBookmarked ? "Failed to remove bookmark." : "Failed to add bookmark."
+      );
+    } finally {
+      setBookmarkLoading(false);
+    }
+  }
 
   const { trackArticleRead } = useAnalytics();
 
   useEffect(() => {
     if (articleId) {
-      trackArticleRead(articleId as string, 'main_feed');
+
+      console.log(
+        "[PostHog] Sending article_read event (main_feed)",
+        articleId
+      );
+      trackArticleRead(articleId as string, "main_feed");
     }
   }, [articleId]);
 
@@ -216,7 +293,41 @@ export default function ArticleView() {
   return (
     <ScrollView contentContainerStyle={s.container}>
       <View style={s.box}>
-        <Text style={s.title}>{title}</Text>
+        <View style={s.headerContainer}>
+          <Text style={s.title}>{title}</Text>
+          {session?.user && (
+            <Pressable
+              onPress={handleToggleBookmark}
+              disabled={bookmarkLoading}
+              style={({ pressed }) => [
+                s.bookmarkButton,
+                pressed && s.bookmarkButtonPressed,
+              ]}
+            >
+              {bookmarkLoading ? (
+                <ActivityIndicator
+                  size="small"
+                  color={isDark ? "#60A5FA" : "#3B82F6"}
+                />
+              ) : (
+                <MaterialCommunityIcons
+                  name={isBookmarked ? "bookmark" : "bookmark-outline"}
+                  size={28}
+                  color={
+                    isBookmarked
+                      ? isDark
+                        ? "#60A5FA"
+                        : "#3B82F6"
+                      : isDark
+                      ? "#aaa"
+                      : "#888"
+                  }
+                  style={{ opacity: isBookmarked ? 1 : 0.7 }}
+                />
+              )}
+            </Pressable>
+          )}
+        </View>
 
         {/* Source URL Section */}
         <Pressable
@@ -348,11 +459,18 @@ const styles = (dark: boolean) =>
       shadowRadius: 4,
       elevation: 2,
     },
+    headerContainer: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "flex-start",
+      marginBottom: 12,
+      gap: 12,
+    },
     title: {
       fontSize: 22,
       fontWeight: "bold",
       color: dark ? "#fff" : "#152B3F",
-      marginBottom: 12,
+      flex: 1,
     },
     sectionLabel: {
       fontSize: 14,
@@ -592,5 +710,20 @@ const styles = (dark: boolean) =>
       color: dark ? "#EDEDED" : "#152B3F",
       textAlign: "center",
       marginTop: 4,
+    },
+    bookmarkButton: {
+      padding: 8,
+      backgroundColor: dark ? "#1A2B3F" : "#F5F5F5",
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)",
+      width: 44,
+      height: 44,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    bookmarkButtonPressed: {
+      opacity: 0.7,
+      transform: [{ scale: 0.95 }],
     },
   });
