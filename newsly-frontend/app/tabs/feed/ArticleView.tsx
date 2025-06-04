@@ -138,6 +138,7 @@ export default function ArticleView() {
 
   useEffect(() => {
     if (articleId) {
+
       console.log(
         "[PostHog] Sending article_read event (main_feed)",
         articleId

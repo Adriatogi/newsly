@@ -5,8 +5,8 @@ import { Slot, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
-import { PostHogProvider } from 'posthog-react-native';
-import { useSessionTracking } from '../lib/analytics';
+import { PostHogProvider } from "posthog-react-native";
+import { useSessionTracking } from "../lib/analytics";
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();

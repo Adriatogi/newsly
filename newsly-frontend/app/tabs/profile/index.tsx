@@ -288,33 +288,30 @@ export default function App() {
           </View>
         ) : (
           <Fragment>
-            <View style={{ alignItems: "center", padding: 24 }}>
+            <View style={styles.welcomeContainer}>
               <Image
                 source={NewslyIcon}
-                style={{ width: 72, height: 72, marginBottom: 16 }}
+                style={styles.welcomeLogo}
                 resizeMode="contain"
               />
               <Text
-                style={{
-                  fontSize: 28,
-                  fontWeight: "bold",
-                  marginBottom: 8,
-                  color: isDark ? "#fff" : "#000",
-                }}
+                style={[
+                  styles.welcomeTitle,
+                  { color: isDark ? "#fff" : "#000" },
+                ]}
               >
                 Welcome to Newsly
               </Text>
               <Text
-                style={{
-                  fontSize: 16,
-                  textAlign: "center",
-                  marginBottom: 24,
-                  color: isDark ? "#ccc" : "#444",
-                }}
+                style={[
+                  styles.welcomeSubtitle,
+                  { color: isDark ? "#ccc" : "#444" },
+                ]}
               >
                 Compare, contrast, and contextualize related news articles from
                 across the political spectrum.
               </Text>
+
               <TouchableOpacity
                 onPress={() => setAuthModalVisible(true)}
                 style={{
@@ -324,58 +321,86 @@ export default function App() {
                   borderRadius: 8,
                   marginBottom: 24,
                 }}
+
+              >
+                <Text style={styles.signUpButtonText}>Sign Up</Text>
+              </TouchableOpacity>
+              <View style={styles.featuresContainer}>
+                <View style={styles.featureItem}>
+                  <FontAwesome
+                    name="newspaper-o"
+                    size={20}
+                    color={isDark ? "#60A5FA" : "#3B82F6"}
+                    style={styles.featureIcon}
+                  />
+                  <Text
+                    style={[
+                      styles.featureText,
+                      { color: isDark ? "#ddd" : "#000" },
+                    ]}
+                  >
+                    See multiple perspectives on current stories
+                  </Text>
+                </View>
+                <View style={styles.featureItem}>
+                  <FontAwesome
+                    name="balance-scale"
+                    size={20}
+                    color={isDark ? "#60A5FA" : "#3B82F6"}
+                    style={styles.featureIcon}
+                  />
+                  <Text
+                    style={[
+                      styles.featureText,
+                      { color: isDark ? "#ddd" : "#000" },
+                    ]}
+                  >
+                    Uncover political bias and misinformation
+                  </Text>
+                </View>
+                <View style={styles.featureItem}>
+                  <FontAwesome
+                    name="book"
+                    size={20}
+                    color={isDark ? "#60A5FA" : "#3B82F6"}
+                    style={styles.featureIcon}
+                  />
+                  <Text
+                    style={[
+                      styles.featureText,
+                      { color: isDark ? "#ddd" : "#000" },
+                    ]}
+                  >
+                    Explore contextual summaries of issues
+                  </Text>
+                </View>
+                <View style={styles.featureItem}>
+                  <FontAwesome
+                    name="bookmark"
+                    size={20}
+                    color={isDark ? "#60A5FA" : "#3B82F6"}
+                    style={styles.featureIcon}
+                  />
+                  <Text
+                    style={[
+                      styles.featureText,
+                      { color: isDark ? "#ddd" : "#000" },
+                    ]}
+                  >
+                    Save articles to read or analyze later
+                  </Text>
+                </View>
+              </View>
+
+              <TouchableOpacity
+                onPress={() => setAuthModalVisible(true)}
+                style={styles.signInLink}
               >
                 <Text
-                  style={{ color: "#fff", fontWeight: "bold", fontSize: 16 }}
-                >
-                  Sign Up
-                </Text>
-              </TouchableOpacity>
-              <View style={{ marginBottom: 16 }}>
-                <Text
-                  style={{
-                    fontSize: 16,
-                    marginBottom: 8,
-                    color: isDark ? "#ddd" : "#000",
-                  }}
-                >
-                  ✓ See multiple perspectives on current stories
-                </Text>
-                <Text
-                  style={{
-                    fontSize: 16,
-                    marginBottom: 8,
-                    color: isDark ? "#ddd" : "#000",
-                  }}
-                >
-                  ✓ Uncover political bias and misinformation
-                </Text>
-                <Text
-                  style={{
-                    fontSize: 16,
-                    marginBottom: 8,
-                    color: isDark ? "#ddd" : "#000",
-                  }}
-                >
-                  ✓ Explore contextual summaries of issues
-                </Text>
-                <Text
-                  style={{
-                    fontSize: 16,
-                    marginBottom: 8,
-                    color: isDark ? "#ddd" : "#000",
-                  }}
-                >
-                  ✓ Save articles for later analysis
-                </Text>
-              </View>
-              <TouchableOpacity onPress={() => setAuthModalVisible(true)}>
-                <Text
-                  style={{
-                    color: isDark ? "#60A5FA" : "#3B82F6",
-                    fontWeight: "bold",
-                    marginTop: 16,
-                  }}
+                  style={[
+                    styles.signInText,
+                    { color: isDark ? "#60A5FA" : "#3B82F6" },
+                  ]}
                 >
                   Already have an account? Sign In
                 </Text>
@@ -472,7 +497,6 @@ export default function App() {
     </SafeAreaView>
   );
 }
-
 const styles = (isDark: boolean) =>
   StyleSheet.create({
     container: {
@@ -662,4 +686,70 @@ const styles = (isDark: boolean) =>
       borderRadius: 8,
       backgroundColor: "transparent",
     },
+     welcomeContainer: {
+      alignItems: "center",
+      padding: 24,
+      paddingTop: 10,
+    },
+    welcomeLogo: {
+      width: 96,
+      height: 96,
+      marginBottom: 24,
+    },
+    welcomeTitle: {
+      fontSize: 32,
+      fontWeight: "700",
+      marginBottom: 12,
+      textAlign: "center",
+    },
+    welcomeSubtitle: {
+      fontSize: 16,
+      textAlign: "center",
+      marginBottom: 32,
+      lineHeight: 24,
+      paddingHorizontal: 16,
+    },
+    signUpButton: {
+      paddingVertical: 14,
+      paddingHorizontal: 40,
+      borderRadius: 12,
+      marginBottom: 32,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    signUpButtonText: {
+      color: "#fff",
+      fontWeight: "600",
+      fontSize: 16,
+    },
+    featuresContainer: {
+      width: "100%",
+      paddingHorizontal: 16,
+      marginBottom: 32,
+    },
+    featureItem: {
+      flexDirection: "row",
+      alignItems: "center",
+      marginBottom: 16,
+      paddingHorizontal: 8,
+    },
+    featureIcon: {
+      marginRight: 12,
+    },
+    featureText: {
+      fontSize: 15,
+      flex: 1,
+      lineHeight: 22,
+    },
+    signInLink: {
+      marginTop: 8,
+      paddingVertical: 8,
+    },
+    signInText: {
+      fontWeight: "600",
+      fontSize: 15,
+    },     
   });
