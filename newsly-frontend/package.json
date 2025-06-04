@@ -62,5 +62,10 @@
     "react-test-renderer": "19.0.0",
     "typescript": "^5.3.3"
   },
+  "overrides": {
+    "@rneui/themed": {
+      "@rneui/base": "4.0.0-rc.8"
+    }
+  },
   "private": true
 }
