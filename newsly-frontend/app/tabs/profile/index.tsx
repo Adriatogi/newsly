@@ -16,7 +16,7 @@ import {
   ActivityIndicator,
   ScrollView,
   RefreshControl,
-  SafeAreaView
+  SafeAreaView,
 } from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
 import * as Linking from "expo-linking";
@@ -180,7 +180,7 @@ export default function App() {
         style={{ flex: 1 }}
         contentContainerStyle={[
           styles(isDark).container,
-          { backgroundColor: isDark ? "#0B1724" : "#f7fafd", flex: 1 },
+          { backgroundColor: isDark ? "#0B1724" : "#f7fafd" },
         ]}
         refreshControl={
           <RefreshControl
@@ -370,7 +370,6 @@ export default function App() {
                 </Text>
               </View>
               <TouchableOpacity onPress={() => setAuthModalVisible(true)}>
-
                 <Text
                   style={{
                     color: isDark ? "#60A5FA" : "#3B82F6",
@@ -478,11 +477,12 @@ const styles = (isDark: boolean) =>
   StyleSheet.create({
     container: {
       padding: 0,
+      paddingBottom: 40,
     },
     profileContainerModern: {
       alignItems: "center",
       marginTop: 24,
-      flex: 1,
+      width: "100%",
     },
     profileCard: {
       backgroundColor: isDark ? "#182B42" : "#fff",
@@ -615,7 +615,7 @@ const styles = (isDark: boolean) =>
       width: "90%",
       alignSelf: "center",
       marginTop: 8,
-      flex: 1,
+      marginBottom: 24,
     },
     savedTitle: {
       fontSize: 20,

@@ -23,8 +23,7 @@ import {
 
 import { supabase } from "../../../lib/supabase";
 import { Session } from "@supabase/supabase-js";
-import { useAnalytics } from '../../../lib/analytics';
-
+import { useAnalytics } from "../../../lib/analytics";
 
 if (Platform.OS === "android")
   UIManager.setLayoutAnimationEnabledExperimental?.(true);
@@ -43,7 +42,7 @@ const FALLACY_NAMES: { [key: string]: string } = {
 
 export default function ArticleView() {
   const params = useLocalSearchParams();
-  console.log('[DEBUG] ArticleView params:', params);
+  console.log("[DEBUG] ArticleView params:", params);
   const {
     title,
     summary,
@@ -134,13 +133,16 @@ export default function ArticleView() {
       setBookmarkLoading(false);
     }
   }
-    
+
   const { trackArticleRead } = useAnalytics();
 
   useEffect(() => {
     if (articleId) {
-      console.log('[PostHog] Sending article_read event (main_feed)', articleId);
-      trackArticleRead(articleId as string, 'main_feed');
+      console.log(
+        "[PostHog] Sending article_read event (main_feed)",
+        articleId
+      );
+      trackArticleRead(articleId as string, "main_feed");
     }
   }, [articleId]);
 
@@ -289,40 +291,42 @@ export default function ArticleView() {
 
   return (
     <ScrollView contentContainerStyle={s.container}>
-      {session?.user && (
-        <View style={{ alignItems: "flex-end", marginBottom: 8 }}>
-          <Pressable
-            onPress={handleToggleBookmark}
-            disabled={bookmarkLoading}
-            style={{ padding: 8 }}
-          >
-            {bookmarkLoading ? (
-              <ActivityIndicator
-                size="small"
-                color={isDark ? "#60A5FA" : "#3B82F6"}
-              />
-            ) : (
-              <Feather
-                name={isBookmarked ? "bookmark" : "bookmark"}
-                size={26}
-                color={
-                  isBookmarked
-                    ? isDark
-                      ? "#60A5FA"
-                      : "#3B82F6"
-                    : isDark
-                    ? "#aaa"
-                    : "#888"
-                }
-                style={{ opacity: isBookmarked ? 1 : 0.7 }}
-                solid={isBookmarked}
-              />
-            )}
-          </Pressable>
-        </View>
-      )}
       <View style={s.box}>
-        <Text style={s.title}>{title}</Text>
+        <View style={s.headerContainer}>
+          <Text style={s.title}>{title}</Text>
+          {session?.user && (
+            <Pressable
+              onPress={handleToggleBookmark}
+              disabled={bookmarkLoading}
+              style={({ pressed }) => [
+                s.bookmarkButton,
+                pressed && s.bookmarkButtonPressed,
+              ]}
+            >
+              {bookmarkLoading ? (
+                <ActivityIndicator
+                  size="small"
+                  color={isDark ? "#60A5FA" : "#3B82F6"}
+                />
+              ) : (
+                <MaterialCommunityIcons
+                  name={isBookmarked ? "bookmark" : "bookmark-outline"}
+                  size={28}
+                  color={
+                    isBookmarked
+                      ? isDark
+                        ? "#60A5FA"
+                        : "#3B82F6"
+                      : isDark
+                      ? "#aaa"
+                      : "#888"
+                  }
+                  style={{ opacity: isBookmarked ? 1 : 0.7 }}
+                />
+              )}
+            </Pressable>
+          )}
+        </View>
 
         {/* Source URL Section */}
         <Pressable
@@ -454,11 +458,18 @@ const styles = (dark: boolean) =>
       shadowRadius: 4,
       elevation: 2,
     },
+    headerContainer: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "flex-start",
+      marginBottom: 12,
+      gap: 12,
+    },
     title: {
       fontSize: 22,
       fontWeight: "bold",
       color: dark ? "#fff" : "#152B3F",
-      marginBottom: 12,
+      flex: 1,
     },
     sectionLabel: {
       fontSize: 14,
@@ -698,5 +709,20 @@ const styles = (dark: boolean) =>
       color: dark ? "#EDEDED" : "#152B3F",
       textAlign: "center",
       marginTop: 4,
+    },
+    bookmarkButton: {
+      padding: 8,
+      backgroundColor: dark ? "#1A2B3F" : "#F5F5F5",
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)",
+      width: 44,
+      height: 44,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    bookmarkButtonPressed: {
+      opacity: 0.7,
+      transform: [{ scale: 0.95 }],
     },
   });

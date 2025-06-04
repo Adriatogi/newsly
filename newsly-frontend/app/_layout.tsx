@@ -6,7 +6,6 @@ import { StatusBar } from "expo-status-bar";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
 import { PostHogProvider } from 'posthog-react-native';
-import { NavigationContainer } from '@react-navigation/native';
 import { useSessionTracking } from '../lib/analytics';
 
 // Keep the splash screen visible while we fetch resources
@@ -40,7 +39,6 @@ export default function RootLayout() {
   }
 
   return (
-    <NavigationContainer>
       <PostHogProvider
         apiKey={process.env.EXPO_PUBLIC_POSTHOG_KEY}
         options={{ host: "https://us.i.posthog.com" }}
@@ -51,7 +49,6 @@ export default function RootLayout() {
           <Slot />
         </GestureHandlerRootView>
       </PostHogProvider>
-    </NavigationContainer>
   );
 }
 
