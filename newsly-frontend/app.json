@@ -10,7 +10,11 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.aviously2.newsly",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -41,6 +45,19 @@
     "fonts": {
       "NewslyHeader": "./assets/fonts/NewslyHeader.ttf",
       "NewslyHeader-Bold": "./assets/fonts/NewslyHeader-Bold.ttf"
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "4684767e-9c37-46d2-86d9-e8bc44b05380"
+      }
+    },
+    "owner": "aviously2",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/4684767e-9c37-46d2-86d9-e8bc44b05380"
     }
   }
 }
