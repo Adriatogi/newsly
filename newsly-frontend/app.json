@@ -2,7 +2,7 @@
   "expo": {
     "sdkVersion": "53.0.0",
     "name": "Newsly",
-    "slug": "Newsly",
+    "slug": "newsly",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/appIcon.png",
