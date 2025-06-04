@@ -41,6 +41,13 @@
     "fonts": {
       "NewslyHeader": "./assets/fonts/NewslyHeader.ttf",
       "NewslyHeader-Bold": "./assets/fonts/NewslyHeader-Bold.ttf"
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "4684767e-9c37-46d2-86d9-e8bc44b05380"
+      }
+    },
+    "owner": "aviously2"
   }
 }
