@@ -6,9 +6,6 @@ import {
   View,
   AppState,
   Animated,
-  Dimensions,
-  KeyboardAvoidingView,
-  Platform,
 } from "react-native";
 import { supabase } from "../lib/supabase";
 import { Button, Input, Text } from "@rneui/themed";
@@ -124,10 +121,7 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
   });
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.container}
-    >
+    <View style={styles.container}>
       <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
         <View style={styles.header}>
           <MaterialCommunityIcons
@@ -238,25 +232,27 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
           </View>
         </View>
       </Animated.View>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "transparent",
+    paddingHorizontal: 20,
+    paddingBottom: 20,
   },
   content: {
     flex: 1,
-    padding: 24,
     justifyContent: "center",
-    maxWidth: 500,
-    width: "100%",
+    maxWidth: 400,
     alignSelf: "center",
+    width: "100%",
   },
   header: {
     alignItems: "center",
-    marginBottom: 48,
+    marginBottom: 32,
   },
   title: {
     marginTop: 16,
@@ -284,7 +280,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
   },
   buttonContainer: {
-    marginTop: 32,
+    marginTop: 24,
     gap: 12,
   },
   signInButton: {

@@ -1,7 +1,7 @@
 import { Session } from "@supabase/supabase-js";
 import { useEffect, useState, Fragment } from "react";
 import { supabase } from "@/lib/supabase";
-import NewslyIcon from "@/assets/images/newsly_icon_final.png";
+import NewslyIcon from "@/assets/images/newslyAppIcon-min.png";
 import Auth from "@/components/Auth";
 import {
   Alert,
@@ -288,15 +288,15 @@ export default function App() {
           </View>
         ) : (
           <Fragment>
-            <View style={styles.welcomeContainer}>
+            <View style={styles(isDark).welcomeContainer}>
               <Image
                 source={NewslyIcon}
-                style={styles.welcomeLogo}
+                style={styles(isDark).welcomeLogo}
                 resizeMode="contain"
               />
               <Text
                 style={[
-                  styles.welcomeTitle,
+                  styles(isDark).welcomeTitle,
                   { color: isDark ? "#fff" : "#000" },
                 ]}
               >
@@ -304,7 +304,7 @@ export default function App() {
               </Text>
               <Text
                 style={[
-                  styles.welcomeSubtitle,
+                  styles(isDark).welcomeSubtitle,
                   { color: isDark ? "#ccc" : "#444" },
                 ]}
               >
@@ -321,69 +321,68 @@ export default function App() {
                   borderRadius: 8,
                   marginBottom: 24,
                 }}
-
               >
-                <Text style={styles.signUpButtonText}>Sign Up</Text>
+                <Text style={styles(isDark).signUpButtonText}>Sign Up</Text>
               </TouchableOpacity>
-              <View style={styles.featuresContainer}>
-                <View style={styles.featureItem}>
+              <View style={styles(isDark).featuresContainer}>
+                <View style={styles(isDark).featureItem}>
                   <FontAwesome
                     name="newspaper-o"
                     size={20}
                     color={isDark ? "#60A5FA" : "#3B82F6"}
-                    style={styles.featureIcon}
+                    style={styles(isDark).featureIcon}
                   />
                   <Text
                     style={[
-                      styles.featureText,
+                      styles(isDark).featureText,
                       { color: isDark ? "#ddd" : "#000" },
                     ]}
                   >
                     See multiple perspectives on current stories
                   </Text>
                 </View>
-                <View style={styles.featureItem}>
+                <View style={styles(isDark).featureItem}>
                   <FontAwesome
                     name="balance-scale"
                     size={20}
                     color={isDark ? "#60A5FA" : "#3B82F6"}
-                    style={styles.featureIcon}
+                    style={styles(isDark).featureIcon}
                   />
                   <Text
                     style={[
-                      styles.featureText,
+                      styles(isDark).featureText,
                       { color: isDark ? "#ddd" : "#000" },
                     ]}
                   >
                     Uncover political bias and misinformation
                   </Text>
                 </View>
-                <View style={styles.featureItem}>
+                <View style={styles(isDark).featureItem}>
                   <FontAwesome
                     name="book"
                     size={20}
                     color={isDark ? "#60A5FA" : "#3B82F6"}
-                    style={styles.featureIcon}
+                    style={styles(isDark).featureIcon}
                   />
                   <Text
                     style={[
-                      styles.featureText,
+                      styles(isDark).featureText,
                       { color: isDark ? "#ddd" : "#000" },
                     ]}
                   >
                     Explore contextual summaries of issues
                   </Text>
                 </View>
-                <View style={styles.featureItem}>
+                <View style={styles(isDark).featureItem}>
                   <FontAwesome
                     name="bookmark"
                     size={20}
                     color={isDark ? "#60A5FA" : "#3B82F6"}
-                    style={styles.featureIcon}
+                    style={styles(isDark).featureIcon}
                   />
                   <Text
                     style={[
-                      styles.featureText,
+                      styles(isDark).featureText,
                       { color: isDark ? "#ddd" : "#000" },
                     ]}
                   >
@@ -394,11 +393,11 @@ export default function App() {
 
               <TouchableOpacity
                 onPress={() => setAuthModalVisible(true)}
-                style={styles.signInLink}
+                style={styles(isDark).signInLink}
               >
                 <Text
                   style={[
-                    styles.signInText,
+                    styles(isDark).signInText,
                     { color: isDark ? "#60A5FA" : "#3B82F6" },
                   ]}
                 >
@@ -482,15 +481,22 @@ export default function App() {
           onRequestClose={() => setAuthModalVisible(false)}
         >
           <SafeAreaView
-            style={{ flex: 1, backgroundColor: isDark ? "#0B1724" : "#fff" }}
+            style={{
+              flex: 1,
+              backgroundColor: isDark ? "#0B1724" : "#fff",
+            }}
           >
-            <Auth onAuthSuccess={() => setAuthModalVisible(false)} />
-            <TouchableOpacity
-              onPress={() => setAuthModalVisible(false)}
-              style={{ padding: 20 }}
-            >
-              <Text style={{ textAlign: "center", color: "#888" }}>Close</Text>
-            </TouchableOpacity>
+            <View style={{ flex: 1, paddingTop: 20 }}>
+              <Auth onAuthSuccess={() => setAuthModalVisible(false)} />
+              <TouchableOpacity
+                onPress={() => setAuthModalVisible(false)}
+                style={{ padding: 20 }}
+              >
+                <Text style={{ textAlign: "center", color: "#888" }}>
+                  Close
+                </Text>
+              </TouchableOpacity>
+            </View>
           </SafeAreaView>
         </Modal>
       </ScrollView>
@@ -686,7 +692,7 @@ const styles = (isDark: boolean) =>
       borderRadius: 8,
       backgroundColor: "transparent",
     },
-     welcomeContainer: {
+    welcomeContainer: {
       alignItems: "center",
       padding: 24,
       paddingTop: 10,
@@ -751,5 +757,5 @@ const styles = (isDark: boolean) =>
     signInText: {
       fontWeight: "600",
       fontSize: 15,
-    },     
+    },
   });
