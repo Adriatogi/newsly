@@ -10,6 +10,7 @@ from app.ml_newsly import (
     extract_topics,
     contextualize_article,
     get_logical_fallacies,
+    get_combined_logical_fallacies,
     lean_explanation,
 )
 from app.utils import normalize_url, parse_article, NewslyArticle
@@ -19,16 +20,128 @@ from app.db import (
     add_article_to_db,
     update_article,
 )
+import app.prompts as prompts
+from app.newsly_types import (
+    LogicalFallacyComplete,
+    LogicalFallacyServerList,
+    LogicalFallacyServer,
+)
 
 modal_summarize = modal.Function.from_name("newsly-modal-test", "summarize")
-modal_political_lean = modal.Function.from_name("newsly-modal-test", "political_lean")
+modal_political_lean_and_explanation = modal.Function.from_name(
+    "newsly-modal-test", "political_lean_with_explanation"
+)
 modal_extract_topics = modal.Function.from_name("newsly-modal-test", "extract_topics")
+modal_get_keywords = modal.Function.from_name("newsly-modal-test", "get_keywords")
+modal_get_tag = modal.Function.from_name("newsly-modal-test", "get_tag")
 modal_contextualize_article = modal.Function.from_name(
     "newsly-modal-test", "contextualize_article"
 )
-modal_lean_explanation = modal.Function.from_name("newsly-modal-test", "lean_explanation")
+modal_lean_explanation = modal.Function.from_name(
+    "newsly-modal-test", "lean_explanation"
+)
+modal_get_logical_fallacies = modal.Function.from_name(
+    "newsly-modal-test", "get_logical_fallacies"
+)
+modal_extract_topics_and_contextualize = modal.Function.from_name(
+    "newsly-modal-test", "extract_topics_and_contextualize"
+)
 
 NO_MODAL = False
+
+
+async def get_modal_logical_fallacies(text: str) -> LogicalFallacyComplete:
+    """
+    Get all logical fallacies using Modal functions.
+    """
+    # Define all fallacy types with their prompts and system messages
+    fallacy_configs = {
+        "ad_hominem": {
+            "prompt": prompts.ad_hominem,
+            "system_message": "You are a helpful assistant that identifies ad hominem attacks in text.",
+        },
+        "discrediting_sources": {
+            "prompt": prompts.discrediting_sources,
+            "system_message": "You are a helpful assistant that identifies discrediting sources in text.",
+        },
+        "emotion_fallacy": {
+            "prompt": prompts.emotion_fallacy,
+            "system_message": "You are a helpful assistant that identifies emotion fallacy in text.",
+        },
+        "false_dichotomy": {
+            "prompt": prompts.false_dichotomy_fallacy,
+            "system_message": "You are a helpful assistant that identifies false dichotomies in text.",
+        },
+        "fear_mongering": {
+            "prompt": prompts.fear_mongering_fallacy,
+            "system_message": "You are a helpful assistant that identifies fear mongering in text.",
+        },
+        "good_sources": {
+            "prompt": prompts.good_sources,
+            "system_message": "You are a helpful assistant that identifies good sources in text.",
+        },
+        "non_sequitur": {
+            "prompt": prompts.non_sequitur,
+            "system_message": "You are a helpful assistant that identifies non-sequiturs in text.",
+        },
+        "presenting_other_side": {
+            "prompt": prompts.presenting_other_side,
+            "system_message": "You are a helpful assistant that identifies presenting the other side in text.",
+        },
+        "scapegoating": {
+            "prompt": prompts.scapegoating,
+            "system_message": "You are a helpful assistant that identifies scapegoating in text.",
+        },
+    }
+
+    # Create async tasks for all fallacy types
+    tasks = []
+    for fallacy_type, config in fallacy_configs.items():
+        task = modal_get_logical_fallacies.remote.aio(
+            text, fallacy_type, config["prompt"]
+        )
+        tasks.append((fallacy_type, task))
+
+    # Wait for all tasks to complete
+    results = {}
+    for fallacy_type, task in tasks:
+        try:
+            result = await task
+            # Convert the result to LogicalFallacyServerList
+            logical_fallacies = []
+            if result.get("logical_fallacies"):
+                for fallacy in result["logical_fallacies"]:
+                    logical_fallacies.append(
+                        LogicalFallacyServer(
+                            reason=fallacy["reason"],
+                            quote=fallacy["quote"],
+                            rating=fallacy["rating"],
+                            explanation=fallacy["explanation"],
+                        )
+                    )
+
+            results[fallacy_type] = LogicalFallacyServerList(
+                logical_fallacies=logical_fallacies, error=result.get("error")
+            )
+        except Exception as e:
+            print(f"Error processing {fallacy_type}: {e}")
+            results[fallacy_type] = LogicalFallacyServerList(
+                logical_fallacies=[], error=str(e)
+            )
+
+    # Create LogicalFallacyComplete object
+    return LogicalFallacyComplete(
+        ad_hominem=results["ad_hominem"],
+        discrediting_sources=results["discrediting_sources"],
+        emotion_fallacy=results["emotion_fallacy"],
+        false_dichotomy=results["false_dichotomy"],
+        fear_mongering=results["fear_mongering"],
+        good_sources=results["good_sources"],
+        non_sequitur=results["non_sequitur"],
+        presenting_other_side=results["presenting_other_side"],
+        scapegoating=results["scapegoating"],
+    )
+
 
 async def analyze_article(article: NewslyArticle, no_modal: bool = NO_MODAL) -> None:
     """
@@ -41,30 +154,68 @@ async def analyze_article(article: NewslyArticle, no_modal: bool = NO_MODAL) -> 
         summary = await llm_summarize(article.text)
         lean = await political_lean(article.text)
         topics = await extract_topics(article.text)
-        logical_fallacies = await get_logical_fallacies(article.text)
-        lean_explanation_text = await lean_explanation(article.text, lean["predicted_lean"], lean["probabilities"][lean["predicted_lean"]])
+        logical_fallacies = await get_combined_logical_fallacies(article.text)
+        lean_explanation_text = await lean_explanation(
+            article.text,
+            lean["predicted_lean"],
+            lean["probabilities"][lean["predicted_lean"]],
+        )
+        predicted_lean = lean["predicted_lean"]
+        lean_probability = lean["probabilities"][lean["predicted_lean"]]
     else:
         print("Running modal")
         summary = modal_summarize.remote.aio(article.text)
-        lean = modal_political_lean.remote.aio(article.text)
-        topics = modal_extract_topics.remote.aio(article.text)
+        lean_and_explanation = modal_political_lean_and_explanation.remote.aio(
+            article.text
+        )
+        topics_contextualization = modal_extract_topics_and_contextualize.remote.aio(
+            article.text
+        )
+        keywords = modal_get_keywords.remote.aio(article.text)
+        tag = modal_get_tag.remote.aio(article.text)
         logical_fallacies = get_logical_fallacies(article.text)
-        summary, lean, topics, logical_fallacies = await asyncio.gather(summary, lean, topics, logical_fallacies)
-        # lean explanation needs lean to be set
-        lean_explanation_text = await modal_lean_explanation.remote.aio(article.text, lean["predicted_lean"], lean["probabilities"][lean["predicted_lean"]])
+        # context got combined into topics
+        # contextualization = modal_contextualize_article.remote.aio(article.text)
+        (
+            summary,
+            lean_and_explanation,
+            topics_contextualization,
+            keywords,
+            tag,
+            logical_fallacies,
+        ) = await asyncio.gather(
+            summary,
+            lean_and_explanation,
+            topics_contextualization,
+            keywords,
+            tag,
+            logical_fallacies,
+            # contextualization,
+        )
+        #  combined with modal_political_lean
+        lean_explanation_text = lean_and_explanation["explanation"]
+        predicted_lean = lean_and_explanation["predicted_lean"]
+        lean_probability = lean_and_explanation["probabilities"]
 
-    # contextualizing depends on `topics` so we need to wait for it. Can't run async with other functions
-    contextualization = modal_contextualize_article.remote(
-        article.text, topics
-    )  # synchronous, so we don't need to await
+        # lean_explanation_text = await modal_lean_explanation.remote.aio(
+        #     article.text,
+        #     lean["predicted_lean"],
+        #     lean["probabilities"][lean["predicted_lean"]],
+        # )
+
+    topics = topics_contextualization["topics"]
+    contextualization = topics_contextualization["contextualization"]
 
     # set the properties of the article to the result of the analysis
     article.summary = summary
-    article.lean = lean
+    article.lean = predicted_lean
     article.lean_explanation = lean_explanation_text
     article.topics = topics
+    article.keywords = keywords
+    article.tag = tag
     article.contextualization = contextualization
     article.logical_fallacies = logical_fallacies
+
 
 async def process_article_db(url: str, cache=True) -> NewslyArticle | None:
     """

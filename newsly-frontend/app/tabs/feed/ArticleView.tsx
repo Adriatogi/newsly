@@ -20,8 +20,11 @@ import {
   FallacyCategory,
   LogicalFallacies,
 } from "../../../lib/articles";
+
 import { supabase } from "../../../lib/supabase";
 import { Session } from "@supabase/supabase-js";
+import { useAnalytics } from '../../../lib/analytics';
+
 
 if (Platform.OS === "android")
   UIManager.setLayoutAnimationEnabledExperimental?.(true);
@@ -39,16 +42,20 @@ const FALLACY_NAMES: { [key: string]: string } = {
 };
 
 export default function ArticleView() {
+  const params = useLocalSearchParams();
+  console.log('[DEBUG] ArticleView params:', params);
   const {
     title,
     summary,
     biasScore,
     contextualization,
+    bias_explanation,
     logical_fallacies,
     authors,
     published_date,
     source_url,
-  } = useLocalSearchParams();
+    articleId,
+  } = params;
 
   const parsedLogicalFallacies = logical_fallacies
     ? (JSON.parse(logical_fallacies as string) as LogicalFallacies)
@@ -127,6 +134,15 @@ export default function ArticleView() {
       setBookmarkLoading(false);
     }
   }
+    
+  const { trackArticleRead } = useAnalytics();
+
+  useEffect(() => {
+    if (articleId) {
+      console.log('[PostHog] Sending article_read event (main_feed)', articleId);
+      trackArticleRead(articleId as string, 'main_feed');
+    }
+  }, [articleId]);
 
   const toggleFallacy = (fallacyType: string) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -346,6 +362,9 @@ export default function ArticleView() {
             {renderBiasBar()}
             {sections["Political Bias Analysis"] && (
               <View style={s.highlights}>
+                {bias_explanation && (
+                  <Text style={s.body}>{bias_explanation as string}</Text>
+                )}
                 {Array.from(biasAnalysisMap.entries()).map(([quote, color]) => (
                   <Text key={quote} style={color === "blue" ? s.blue : s.red}>
                     {`"${quote}"`}

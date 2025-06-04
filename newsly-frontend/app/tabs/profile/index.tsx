@@ -370,6 +370,7 @@ export default function App() {
                 </Text>
               </View>
               <TouchableOpacity onPress={() => setAuthModalVisible(true)}>
+
                 <Text
                   style={{
                     color: isDark ? "#60A5FA" : "#3B82F6",

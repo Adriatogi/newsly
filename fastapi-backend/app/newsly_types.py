@@ -8,16 +8,35 @@ class ArticleAnalysisRequest(BaseModel):
 
 
 class LogicalFallacyAPI(BaseModel):
-    reason: str = Field(description="The reason for the fallacy")
     quote: str = Field(description="The quote that is the fallacy")
-    rating: int = Field(description="The rating of the fallacy")
-    explanation: str = Field(description="The explanation of the fallacy")
+    reason: str = Field(description="The reason for the fallacy")
+    explanation: str = Field(
+        description="An explanation of how confident it is in the rating"
+    )
+    rating: int = Field(description="The confidence rating of the fallacy")
 
 
 # This is what is fed to the API
 class LogicalFallacyListAPI(BaseModel):
     logical_fallacies: list[LogicalFallacyAPI] = Field(
         description="The logical fallacies in the text"
+    )
+
+
+class CombinedAnalysisAPI(BaseModel):
+    analysis: dict[str, list[LogicalFallacyAPI]] = Field(
+        description="Analysis results organized by fallacy type",
+        default_factory=lambda: {
+            "ad_hominem": [],
+            "discrediting_sources": [],
+            "emotion_fallacy": [],
+            "false_dichotomy": [],
+            "fear_mongering": [],
+            "non_sequitur": [],
+            "scapegoating": [],
+            "good_sources": [],
+            "presenting_other_side": [],
+        },
     )
 
 
@@ -90,11 +109,11 @@ class NewslyArticle:
     lean: str = ""
     lean_explanation: str = ""
     topics: list[str] = field(default_factory=list)
+    tag: str = ""
     contextualization: str = ""
     logical_fallacies: LogicalFallacyComplete = field(
         default_factory=LogicalFallacyComplete
     )
-
 
     # fields for the database
     # These fields are set by the database and should not be set manually
