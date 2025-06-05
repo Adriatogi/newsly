@@ -15,7 +15,7 @@ import { useRouter } from "expo-router";
 import { NewsArticle, fetchArticles } from "../../../lib/articles";
 import { NewsCard } from "../../../components/NewsCard";
 import { SearchContext } from "./_layout";
-import { useAnalytics } from '../../../lib/analytics';
+import { useAnalytics } from "../../../lib/analytics";
 
 const Feed: React.FC = () => {
   const router = useRouter();
@@ -63,7 +63,7 @@ const Feed: React.FC = () => {
   const filteredArticles = articles
     .filter(
       (article) =>
-        activeCategory === "All" || article.tag.includes(activeCategory)
+        activeCategory === "All" || article.tag.includes(activeCategory),
     )
     .filter((article) => {
       if (!searchQuery) return true;
@@ -72,7 +72,7 @@ const Feed: React.FC = () => {
         article.title.toLowerCase().includes(query) ||
         article.summary.toLowerCase().includes(query) ||
         article.authors.some((author) =>
-          author.toLowerCase().includes(query)
+          author.toLowerCase().includes(query),
         ) ||
         article.tag.toLowerCase().includes(query)
       );
@@ -80,7 +80,7 @@ const Feed: React.FC = () => {
 
   useEffect(() => {
     filteredArticles.forEach((article) => {
-      trackArticleShown(article.id, 'main_feed');
+      trackArticleShown(article.id, "main_feed");
     });
   }, [filteredArticles]);
 
@@ -91,7 +91,7 @@ const Feed: React.FC = () => {
         articleId: article.id,
         title: article.title,
         summary: article.summary,
-        biasScore: article.bias.predicted_lean,
+        biasScore: article.bias,
         contextualization: article.contextualization,
         bias_explanation: article.bias_explanation,
         logical_fallacies: JSON.stringify(article.logical_fallacies),
@@ -210,7 +210,7 @@ const Feed: React.FC = () => {
                   publishDate={article.published_date}
                   shadowColor="#000"
                   shadowOpacity={0.15}
-                  biasScore={article.bias.predicted_lean}
+                  biasScore={article.bias}
                   category={article.tag || "Uncategorized"}
                   author={article.authors[0] || "Unknown Author"}
                   newsSource={article.source_url}

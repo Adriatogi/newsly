@@ -1,4 +1,4 @@
-import { supabase } from "./supabase";
+import { supabase } from './supabase';
 
 export interface LogicalFallacy {
   quote: string;
@@ -47,17 +47,17 @@ export interface NewsArticle {
   source_url: string;
   keywords: string[];
   summary: string;
-  bias: BiasData;
+  bias: 'center' | 'left' | 'right';
   bias_explanation: string;
   tag: string;
-  contextualization: string;  
+  contextualization: string;
   images: string[];
   movies: string[];
   logical_fallacies: LogicalFallacies;
 }
 
 function filterHighRatedFallacies(
-  fallacies: LogicalFallacies
+  fallacies: LogicalFallacies,
 ): LogicalFallacies {
   const result: LogicalFallacies = {
     ad_hominem: { error: null, logical_fallacies: [] },
@@ -77,7 +77,7 @@ function filterHighRatedFallacies(
     result[typedCategory] = {
       error: fallacies[typedCategory].error,
       logical_fallacies: fallacies[typedCategory].logical_fallacies.filter(
-        (fallacy) => fallacy.rating >= 4
+        (fallacy) => fallacy.rating >= 4,
       ),
     };
   });
@@ -98,33 +98,24 @@ function transformArticle(data: any): NewsArticle {
   };
 
   return {
-    id: data.id || "",
-    url: data.url || "",
-    title: data.title || "",
-    text: data.text || "",
+    id: data.id || '',
+    url: data.url || '',
+    title: data.title || '',
+    text: data.text || '',
     authors: Array.isArray(data.authors) ? data.authors : [],
-    image_url: data.image_url || "",
+    image_url: data.image_url || '',
     read_count: data.read_count || 0,
-    published_date: data.published_date || "",
-    last_analyzed_at: data.last_analyzed_at || "",
-    created_at: data.created_at || "",
-    source_url: data.source_url || "",
+    published_date: data.published_date || '',
+    last_analyzed_at: data.last_analyzed_at || '',
+    created_at: data.created_at || '',
+    source_url: data.source_url || '',
     keywords: Array.isArray(data.keywords) ? data.keywords : [],
-    summary: data.summary || "",
-    bias:
-      data.lean && typeof data.lean === "object"
-        ? data.lean
-        : {
-            probabilities: {
-              left: 0,
-              center: 0,
-              right: 0,
-            },
-            predicted_lean: "center",
-          },
-    tag: data.tag || "",
-    contextualization: data.contextualization || "No contextualization provided",
-    bias_explanation: data.lean_explanation || "No explanation provided",
+    summary: data.summary || '',
+    bias: data.lean || 'center',
+    tag: data.tag || '',
+    contextualization:
+      data.contextualization || 'No contextualization provided',
+    bias_explanation: data.lean_explanation || 'No explanation provided',
     images: Array.isArray(data.images) ? data.images : [],
     movies: Array.isArray(data.movies) ? data.movies : [],
     logical_fallacies: data.logical_fallacies
@@ -135,12 +126,12 @@ function transformArticle(data: any): NewsArticle {
 
 export async function fetchArticles(): Promise<NewsArticle[]> {
   const { data, error } = await supabase
-    .from("articles")
-    .select("*")
-    .order("created_at", { ascending: false });
+    .from('articles')
+    .select('*')
+    .order('created_at', { ascending: false });
 
   if (error) {
-    console.error("Error fetching articles:", error);
+    console.error('Error fetching articles:', error);
     throw error;
   }
 
@@ -148,16 +139,16 @@ export async function fetchArticles(): Promise<NewsArticle[]> {
 }
 
 export async function fetchArticleById(
-  id: string
+  id: string,
 ): Promise<NewsArticle | null> {
   const { data, error } = await supabase
-    .from("articles")
-    .select("*")
-    .eq("id", id)
+    .from('articles')
+    .select('*')
+    .eq('id', id)
     .single();
 
   if (error) {
-    console.error("Error fetching article:", error);
+    console.error('Error fetching article:', error);
     throw error;
   }
 
@@ -165,16 +156,16 @@ export async function fetchArticleById(
 }
 
 export async function fetchArticleByUrl(
-  url: string
+  url: string,
 ): Promise<NewsArticle | null> {
   const { data, error } = await supabase
-    .from("articles")
-    .select("*")
-    .eq("url", url)
+    .from('articles')
+    .select('*')
+    .eq('url', url)
     .single();
 
   if (error) {
-    console.error("Error fetching article:", error);
+    console.error('Error fetching article:', error);
     throw error;
   }
 
