@@ -1,4 +1,5 @@
 # Newsly
+<img src="https://github.com/user-attachments/assets/4df15b13-f3c0-4119-9ac0-3188cb76211b" width="200">
 
 **AI-Powered News Analysis Platform for Bias Detection and Misinformation Identification**
 
